@@ -1,0 +1,226 @@
+:root {
+    /* 
+     * 全局 CSS 变量定义
+     * 使用霓虹/赛博朋克深色主题
+     */
+    --bg-dark: #1a1a2e;
+    /* 深蓝/黑背景 */
+    --glass-bg: rgba(255, 255, 255, 0.1);
+    /* 玻璃拟态半透明背景 */
+    --glass-border: rgba(255, 255, 255, 0.2);
+    /* 玻璃边框 */
+    --neon-blue: #0f3460;
+    /* 霓虹蓝 */
+    --neon-pink: #e94560;
+    /* 霓虹粉 */
+    --text-light: #fff;
+    /* 亮色文字 */
+}
+
+body {
+    margin: 0;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: var(--bg-dark);
+    color: var(--text-light);
+    height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden;
+    /* 防止滚动条出现 */
+}
+
+/* Game Area Layout (With Chat) */
+.game-area {
+    display: flex;
+    gap: 20px;
+    align-items: flex-start;
+    justify-content: center;
+    flex-wrap: nowrap;
+    /* 强制不换行，保持聊天室在侧边 */
+}
+
+/* Chat Sidebar */
+.chat-container {
+    width: 350px;
+    /* 增加宽度 */
+    height: 600px;
+    /* 与棋盘高度一致 600px */
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    border-radius: 12px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    backdrop-filter: blur(10px);
+    flex-shrink: 0;
+    /* 防止宽度被压缩 */
+}
+
+.chat-header {
+    padding: 15px;
+    background: rgba(0, 0, 0, 0.3);
+    font-weight: bold;
+    border-bottom: 1px solid var(--glass-border);
+    color: var(--neon-blue);
+    letter-spacing: 1px;
+    flex-shrink: 0;
+}
+
+.chat-messages {
+    flex: 1;
+    /* 占据剩余空间 */
+    padding: 15px;
+    overflow-y: auto;
+    /* 允许垂直滚动 */
+    font-size: 0.9rem;
+    text-align: left;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    min-height: 0;
+    /* Firefox flexbox scrolling fix */
+}
+
+.chat-input-area {
+    padding: 15px;
+    display: flex;
+    gap: 10px;
+    border-top: 1px solid var(--glass-border);
+    background: rgba(0, 0, 0, 0.2);
+    flex-shrink: 0;
+}
+
+/* 隐藏类，用于视图切换 */
+.hidden {
+    display: none !important;
+}
+
+/* 
+ * 玻璃拟态容器通用样式
+ * 应用于登录框、大厅、游戏区域
+ */
+.container,
+.auth-box,
+.lobby-box,
+.game-container {
+    background: var(--glass-bg);
+    backdrop-filter: blur(10px);
+    /* 背景模糊效果 */
+    border: 1px solid var(--glass-border);
+    border-radius: 12px;
+    padding: 2rem;
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+    text-align: center;
+    /* 简单的淡入动画 */
+    animation: fadeIn 0.5s ease-out;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* --- 登录视图 --- */
+.auth-box input {
+    display: block;
+    width: 100%;
+    margin: 10px 0;
+    padding: 10px;
+    border-radius: 4px;
+    border: none;
+    background: rgba(0, 0, 0, 0.3);
+    color: white;
+}
+
+button {
+    background-color: var(--neon-pink);
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 1rem;
+    transition: transform 0.1s;
+}
+
+button:hover {
+    transform: scale(1.05);
+    /* 悬停微放大 */
+    background-color: #ff2e4d;
+}
+
+/* --- 大厅视图 --- */
+#rooms {
+    list-style: none;
+    padding: 0;
+    max-height: 300px;
+    overflow-y: auto;
+    /* 房间多时滚动 */
+}
+
+.room-item {
+    background: rgba(0, 0, 0, 0.2);
+    margin: 5px 0;
+    padding: 10px;
+    border-radius: 4px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+/* --- 游戏视图 --- */
+.game-container {
+    display: flex;
+    gap: 2rem;
+    /* 左右玩家间距 */
+    align-items: flex-start;
+}
+
+.player-board {
+    position: relative;
+    padding: 20px;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 15px;
+    border: 1px solid var(--glass-border);
+}
+
+/* 棋盘和预览区域的包装器 */
+.board-wrapper {
+    display: flex;
+    gap: 20px;
+}
+
+/* 下一个方块预览容器 */
+.next-piece-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.next-piece-container h4 {
+    margin: 0 0 10px 0;
+    color: var(--neon-pink);
+}
+
+/* 画布样式 */
+canvas {
+    border: 2px solid var(--glass-border);
+    background-color: rgba(0, 0, 0, 0.8);
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+    border-radius: 4px;
+}
+
+/* 分数显示 */
+.score {
+    margin-top: 10px;
+    font-size: 1.2rem;
+    font-weight: bold;
+}

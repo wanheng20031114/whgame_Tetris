@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>whgame 1v1 Tetris</title>
+    <link rel="stylesheet" href="/src/style.css">
+    <link rel="icon" type="image/svg+xml" href="/favicon.ico" />
+</head>
+
+<body>
+    <div id="app">
+        <!-- Views will be dynamically swapped here -->
+        <div id="login-view" class="view">
+            <h1>Tetris Duel</h1>
+            <div class="auth-box">
+                <input type="text" id="username" placeholder="Username">
+                <input type="password" id="password" placeholder="Password">
+                <button id="login-btn">Login</button>
+                <button id="register-btn">Register</button>
+            </div>
+        </div>
+
+        <div id="lobby-view" class="view hidden">
+            <header>
+                <h2>Lobby</h2>
+                <span id="user-display"></span>
+            </header>
+            <div class="lobby-content">
+                <div class="room-list">
+                    <h3>Available Rooms</h3>
+                    <ul id="rooms"></ul>
+                </div>
+                <div class="lobby-controls">
+                    <button id="create-room-btn">Create Room</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="game-view" class="view hidden">
+            <header>
+                <div style="display: flex; gap: 10px; align-items: center;">
+                    <button id="leave-room-btn">Leave</button>
+                    <span id="room-id-display"></span>
+                </div>
+            </header>
+
+            <div class="game-area">
+                <div class="game-container">
+                    <!-- Local Player -->
+                    <div class="player-board local">
+                        <h3>You</h3>
+                        <div class="board-wrapper">
+                            <canvas id="local-board" width="300" height="600"></canvas>
+                            <div class="next-piece-container">
+                                <h4>Next</h4>
+                                <canvas id="next-piece" width="120" height="120"></canvas>
+                            </div>
+                        </div>
+                        <div class="score">Score: <span id="local-score">0</span></div>
+                    </div>
+                    <!-- Remote Player -->
+                    <div class="player-board remote">
+                        <h3>Opponent</h3>
+                        <div class="board-wrapper">
+                            <canvas id="remote-board" width="300" height="600"></canvas>
+                        </div>
+                        <div class="score">Score: <span id="remote-score">0</span></div>
+                    </div>
+                </div>
+
+                <!-- Chat Sidebar -->
+                <div class="chat-container">
+                    <div class="chat-header">Chat Room</div>
+                    <div class="chat-messages" id="chat-messages"></div>
+                    <div class="chat-input-area">
+                        <input type="text" id="chat-input" placeholder="Type a message..." maxlength="50">
+                        <button id="chat-send-btn">Send</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Game Over Overlay -->
+        <div id="game-over-modal" class="modal hidden">
+            <div class="modal-content">
+                <h2 id="game-over-title">GAME OVER</h2>
+                <p id="game-over-desc">Result</p>
+                <button id="play-again-btn">Play Again</button>
+            </div>
+        </div>
+    </div>
+    <script type="module" src="/src/main.js"></script>
+</body>
+
+</html>
