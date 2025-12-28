@@ -33,14 +33,19 @@ const buttons = {
     login: document.getElementById('login-btn'),
     register: document.getElementById('register-btn'),
     createRoom: document.getElementById('create-room-btn'),
-    leaveRoom: document.getElementById('leave-room-btn')
+    leaveRoom: document.getElementById('leave-room-btn'),
+    restartGame: document.getElementById('restart-game-btn')
 };
 
 const display = {
     user: document.getElementById('user-display'),
     rooms: document.getElementById('rooms'),
-    roomId: document.getElementById('room-id-display')
+    roomId: document.getElementById('room-id-display'),
+    status: document.getElementById('game-status')
 };
+
+// 初始化：禁用只有游戏结束后才能用的按钮
+buttons.restartGame.disabled = true;
 
 /**
  * 切换界面视图
@@ -114,6 +119,16 @@ buttons.leaveRoom.addEventListener('click', () => {
     switchView('lobby');
 });
 
+buttons.restartGame.addEventListener('click', () => {
+    // 只有在游戏进行中或结束后才能重置
+    if (appState.currentView === 'game') {
+        socket.emit('game_reset');
+        // 重置视图会在 game_ready 中触发，这里只需禁用按钮防止重复点击
+        buttons.restartGame.disabled = true;
+        display.status.classList.add('hidden');
+    }
+});
+
 // --- Socket.IO 事件处理 ---
 
 socket.on('connect', () => {
@@ -165,8 +180,14 @@ socket.on('player_joined', (user) => {
 
 // 游戏准备就绪 (两名玩家都已加入)
 // 游戏准备就绪 (两名玩家都已加入)
-socket.on('game_ready', () => {
-    console.log('Game Ready!');
+socket.on('game_ready', (data) => {
+    // 游戏准备就绪 (两名玩家都已加入)
+    console.log('Game Ready!', data);
+
+    // 清空状态栏并禁用重开按钮
+    display.status.textContent = '';
+    display.status.className = 'status-bar hidden';
+    buttons.restartGame.disabled = true;
 
     // 关键修正：新游戏开始时，强制清理旧视图
     resetGameView();
@@ -178,9 +199,10 @@ socket.on('game_ready', () => {
     if (appState.localGame) appState.localGame.gameOver = true;
     if (appState.remoteGame) appState.remoteGame.gameOver = true;
 
-    // 初始化新游戏实例
-    appState.localGame = new TetrisGame(localCanvas);
-    appState.remoteGame = new TetrisGame(remoteCanvas, true); // 远程模式，只渲染
+    // 初始化新游戏实例 (传入种子)
+    const seed = data && data.seed ? data.seed : Math.floor(Math.random() * 100000);
+    appState.localGame = new TetrisGame(localCanvas, false, seed);
+    appState.remoteGame = new TetrisGame(remoteCanvas, true, seed); // 远程模式也传入相同的种子
 
     // 绑定本地游戏回调
 
@@ -243,7 +265,7 @@ socket.on('game_ready', () => {
     appState.localGame.onGameOver = () => {
         // 第一时间通知对手我输了
         socket.emit('game_action', { type: 'game_over' });
-        showGameOver(false); // 显示失败弹窗
+        showGameOver(false); // 显示失败状态 (侧边栏)
     };
 
     // 启动本地游戏循环
@@ -252,10 +274,9 @@ socket.on('game_ready', () => {
 
 // 处理游戏重置
 socket.on('game_reset', () => {
-    // 隐藏弹窗
-    const modal = document.getElementById('game-over-modal');
-    modal.classList.add('hidden');
     // 游戏区域的重置由 game_ready 触发 resetGameView 处理
+    // 这里确保状态栏被隐藏
+    display.status.classList.add('hidden');
 });
 
 // 处理接收到的游戏动作 (来自对手)
@@ -269,7 +290,7 @@ socket.on('game_action', (data) => {
     } else if (data.type === 'game_over') {
         // 对手输了 -> 我赢了
         appState.localGame.gameOver = true; // 停止本地游戏
-        showGameOver(true); // 显示胜利弹窗
+        showGameOver(true); // 显示胜利状态 (侧边栏)
     } else if (data.type === 'garbage') {
         // 收到垃圾行攻击
         appState.localGame.addGarbage(data.value);
@@ -327,9 +348,13 @@ socket.on('player_left', () => {
         ctx.fillText('Waiting for player...', remoteCanvas.width / 2, remoteCanvas.height / 2);
     }
 
-    // 提示
-    const modal = document.getElementById('game-over-modal');
-    modal.classList.add('hidden');
+    // 提示对手离开
+    display.status.textContent = '对手已离开';
+    display.status.className = 'status-bar lose'; // 用醒目颜色显示
+    display.status.classList.remove('hidden');
+
+    // 禁用重开按钮（因为没人了）
+    buttons.restartGame.disabled = true;
 });
 
 
@@ -338,8 +363,6 @@ socket.on('player_left', () => {
 const chatInput = document.getElementById('chat-input');
 const chatSendBtn = document.getElementById('chat-send-btn');
 const chatMessages = document.getElementById('chat-messages');
-const modal = document.getElementById('game-over-modal');
-const playAgainBtn = document.getElementById('play-again-btn');
 
 // 发送聊天消息
 function sendChat() {
@@ -370,31 +393,21 @@ socket.on('chat_message', (msg) => {
     chatMessages.scrollTop = chatMessages.scrollHeight; // 自动滚动到底部
 });
 
-// 显示游戏结束弹窗
+// 显示游戏结束状态 (侧边栏)
 function showGameOver(isWin) {
-    const title = document.getElementById('game-over-title');
-    const desc = document.getElementById('game-over-desc');
-
-    modal.classList.remove('hidden');
+    display.status.classList.remove('hidden');
 
     if (isWin) {
-        title.textContent = 'YOU WON!';
-        title.style.color = '#0DFF72';
-        desc.textContent = 'Congratulations! You defeated your opponent.';
+        display.status.textContent = '你赢了! (YOU WON)';
+        display.status.className = 'status-bar win';
     } else {
-        title.textContent = 'GAME OVER';
-        title.style.color = '#FF0D72';
-        desc.textContent = 'Don\'t give up! Try again.';
+        display.status.textContent = '游戏结束 (GAME OVER)';
+        display.status.className = 'status-bar lose';
     }
-}
 
-// 再玩一次按钮
-playAgainBtn.addEventListener('click', () => {
-    socket.emit('game_reset');
-    // 手动隐藏防止重复点击，虽然 game_reset 回来也会隐藏
-    modal.classList.add('hidden');
-    resetGameView(); // 立即重置本地视图给用户反馈
-});
+    // 游戏结束后启用重新开始按钮
+    buttons.restartGame.disabled = false;
+}
 
 // 键盘输入监听
 document.addEventListener('keydown', (event) => {
@@ -405,17 +418,21 @@ document.addEventListener('keydown', (event) => {
         document.activeElement === chatInput) return;
 
     switch (event.code) {
+        case 'KeyA': // A - Left
         case 'ArrowLeft':
             if (appState.localGame) appState.localGame.move(-1);
             break;
+        case 'KeyD': // D - Right
         case 'ArrowRight':
             if (appState.localGame) appState.localGame.move(1);
             break;
+        case 'KeyS': // S - Down (Soft Drop)
         case 'ArrowDown':
-            if (appState.localGame) appState.localGame.drop(); // 软下落 (加速)
+            if (appState.localGame) appState.localGame.drop();
             break;
+        case 'KeyW': // W - Rotate
         case 'ArrowUp':
-            if (appState.localGame) appState.localGame.rotate(1); // 旋转
+            if (appState.localGame) appState.localGame.rotate(1);
             break;
         case 'Space':
             if (appState.localGame) appState.localGame.hardDrop(); // 硬下落 (瞬间到底)
