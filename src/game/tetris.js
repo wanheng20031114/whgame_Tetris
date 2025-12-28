@@ -198,7 +198,6 @@ export class TetrisGame {
         // 循环下落直到发生碰撞
         while (!this.collide(this.board, this.piece, { x: this.pos.x, y: this.pos.y + 1 })) {
             this.pos.y++;
-            this.score += 2; // 硬降奖励分
         }
         // 执行最终的锁定逻辑
         this.drop();
@@ -307,11 +306,12 @@ export class TetrisGame {
         // 积分规则
         if (rowCount > 0) {
             const oldScore = this.score;
-            this.score += rowCount * 10;
+            const scoreTable = { 1: 80, 2: 140, 3: 200, 4: 300 };
+            this.score += scoreTable[rowCount] || 0;
             if (this.onScore) this.onScore(this.score);
 
-            // 积分每达到 100 分触发一次攻击判定
-            const attackLines = Math.floor(this.score / 100) - Math.floor(oldScore / 100);
+            // 积分每达到 200 分触发一次攻击判定
+            const attackLines = Math.floor(this.score / 200) - Math.floor(oldScore / 200);
             if (attackLines > 0 && this.onLinesCleared) {
                 this.onLinesCleared(attackLines);
             }
