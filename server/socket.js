@@ -95,7 +95,9 @@ module.exports = (io, db) => {
 
             // 如果满员（2人），触发游戏准备/开始
             if (Object.keys(room.players).length === 2) {
-                io.to(roomId).emit('game_ready');
+                // 生成一个随机种子，确保双方方块序列一致
+                const seed = Math.floor(Math.random() * 2147483647);
+                io.to(roomId).emit('game_ready', { seed });
             }
 
             // 更新大厅列表（人数变化）
@@ -197,7 +199,8 @@ module.exports = (io, db) => {
                     // 通知双方重置
                     io.to(roomId).emit('game_reset');
                     // 立即开始新的一局
-                    io.to(roomId).emit('game_ready');
+                    const seed = Math.floor(Math.random() * 2147483647);
+                    io.to(roomId).emit('game_ready', { seed });
 
                     // 可选：发送系统消息
                     io.to(roomId).emit('chat_message', { type: 'system', text: '🔄 游戏已重置，新的一局开始！' });

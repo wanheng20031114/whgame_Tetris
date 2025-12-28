@@ -4,6 +4,7 @@ import { defineConfig } from 'vite';
 // Vite 配置文件
 export default defineConfig({
   server: {
+    allowedHosts: ['www.wszzwh.site'], //开在这里了
     // 代理配置：解决前端开发服务器与后端 API 服务器跨域问题
     proxy: {
       // 将 /socket.io 开头的 WebSocket 请求代理到后端端口 3000

@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="zh">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Audio Test</title>
+</head>
+
+<body>
+    <h1>音效测试 - Audio Test</h1>
+    <p>Web Audio API 依赖浏览器环境，无法直接在 Node.js 中运行。</p>
+    <p>点击下方按钮测试生成的音效：</p>
+
+    <button id="btn" style="padding: 20px; font-size: 20px; cursor: pointer;">播放落地音效 (Play Sound)</button>
+    <div id="log" style="margin-top: 20px; font-family: monospace;"></div>
+
+    <script type="module">
+        import { SoundManager } from './src/game/audio.js';
+
+        const logDiv = document.getElementById('log');
+        const log = (msg) => {
+            logDiv.innerHTML += `[${new Date().toLocaleTimeString()}] ${msg}<br>`;
+            console.log(msg);
+        };
+
+        try {
+            const sm = new SoundManager();
+
+            document.getElementById('btn').addEventListener('click', () => {
+                log('尝试播放音效...');
+                // 直接使用 SoundManager 实例的方法，它内部会自动处理 Context Resume
+                try {
+                    sm.playLandSound();
+                    log('playLandSound() called');
+                } catch (err) {
+                    log('Error: ' + err.message);
+                }
+            });
+
+            // 新增消除音效测试按钮
+            const btnClear = document.createElement('button');
+            btnClear.innerText = '播放消除音效 (Play Clear Sound)';
+            btnClear.style.cssText = 'padding: 20px; font-size: 20px; cursor: pointer; margin-left: 10px; background-color: #e0f7fa;';
+            document.body.insertBefore(btnClear, logDiv);
+
+            btnClear.addEventListener('click', () => {
+                log('尝试播放消除音效...');
+                try {
+                    sm.playClearSound();
+                    log('playClearSound() called');
+                } catch (err) {
+                    log('Error: ' + err.message);
+                }
+            });
+
+            function play() {
+                try {
+                    sm.playLandSound();
+                    log('playLandSound() called');
+                } catch (err) {
+                    log('Error: ' + err.message);
+                }
+            }
+
+            log('SoundManager initialized. Ready.');
+        } catch (e) {
+            log('Initialization Error: ' + e.message);
+        }
+    </script>
+</body>
+
+</html>

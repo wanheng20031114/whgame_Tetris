@@ -1,5 +1,7 @@
 
 // 游戏常量定义
+import { SoundManager } from './audio.js';
+
 export const CONSTANTS = {
     COLS: 10,        // 棋盘列数
     ROWS: 20,        // 棋盘行数
@@ -7,15 +9,16 @@ export const CONSTANTS = {
     // 方块颜色映射 (索引 1-7 对应7种方块，8为垃圾行)
     COLORS: [
         null,
-        '#FF0D72', // T - 紫红
-        '#0DC2FF', // O - 青色
-        '#0DFF72', // S - 绿色
-        '#F538FF', // Z - 紫色
-        '#FF8E0D', // I - 橙色
-        '#FFE138', // J - 黄色
-        '#3877FF', // L - 蓝色
+        '#C24CC4', // T - 紫色 (Purple)
+        '#E6D44C', // O - 黄色 (Yellow)
+        '#56D178', // S - 绿色 (Green)
+        '#E05555', // Z - 红色 (Red)
+        '#52D6D6', // I - 青色 (Cyan)
+        '#5C85E6', // J - 蓝色 (Blue)
+        '#E69545', // L - 橙色 (Orange)
         '#808080', // Garbage - 灰色
-    ]
+    ],
+    INITIAL_SPEED: 500 // 初始下落间隔 (毫秒)
 };
 
 // 7种俄罗斯方块的形状矩阵定义
@@ -58,6 +61,32 @@ const PIECES = [
 ];
 
 /**
+ * 线性同余发生器 (Linear Congruential Generator)
+ * 用于生成确定的随机数序列
+ */
+class Random {
+    constructor(seed = 1) {
+        this.state = seed % 2147483647;
+        if (this.state <= 0) this.state += 2147483646;
+    }
+
+    /**
+     * 生成下一个随机数 [0, 1)
+     */
+    next() {
+        this.state = (this.state * 48271) % 2147483647;
+        return (this.state - 1) / 2147483646;
+    }
+
+    /**
+     * 生成指定范围内的整数 [0, max)
+     */
+    nextInt(max) {
+        return Math.floor(this.next() * max);
+    }
+}
+
+/**
  * 俄罗斯方块核心游戏类
  */
 export class TetrisGame {
@@ -65,10 +94,16 @@ export class TetrisGame {
      * @param {HTMLCanvasElement} canvas - 游戏画布元素
      * @param {boolean} isRemote - 是否为远程玩家（镜像模式），如果是则不处理输入和掉落循环
      */
-    constructor(canvas, isRemote = false) {
+    /**
+     * @param {HTMLCanvasElement} canvas - 游戏画布元素
+     * @param {boolean} isRemote - 是否为远程玩家（镜像模式），如果是则不处理输入和掉落循环
+     * @param {number} seed - 随机种子，确保双方方块序列一致
+     */
+    constructor(canvas, isRemote = false, seed = 1) {
         this.ctx = canvas.getContext('2d');
         this.canvas = canvas;
         this.isRemote = isRemote;
+        this.rng = new Random(seed); // 初始化随机数生成器
 
         this.board = this.createBoard();
         this.score = 0;
@@ -81,7 +116,7 @@ export class TetrisGame {
 
         // 时间控制（用于下落动画）
         this.dropCounter = 0;
-        this.dropInterval = 1000; // 初始下落间隔 (毫秒)
+        this.dropInterval = CONSTANTS.INITIAL_SPEED;
         this.lastTime = 0;
 
         // 事件回调函数
@@ -90,6 +125,8 @@ export class TetrisGame {
         this.onBoardUpdate = null; // 用于同步棋盘状态到服务器
         this.onNextPiece = null;   // 用于通知UI更新下一个方块预览
         this.onLinesCleared = null; // 消除行回调
+
+        this.soundManager = new SoundManager();
     }
 
     /**
@@ -115,7 +152,7 @@ export class TetrisGame {
         this.board = this.createBoard();
         this.score = 0;
         this.gameOver = false;
-        this.dropInterval = 1000;
+        this.dropInterval = CONSTANTS.INITIAL_SPEED;
         this.dropCounter = 0;
 
         // 初始化方块
@@ -130,8 +167,11 @@ export class TetrisGame {
     /**
      * 生成随机方块矩阵
      */
+    /**
+     * 生成随机方块矩阵
+     */
     randomPiece() {
-        const id = Math.floor(Math.random() * PIECES.length);
+        const id = this.rng.nextInt(PIECES.length);
         const matrix = PIECES[id];
         // 深拷贝矩阵，防止修改原定义
         return matrix.map(row => [...row]);
@@ -166,6 +206,7 @@ export class TetrisGame {
         if (this.collide(this.board, this.piece, this.pos)) {
             this.pos.y--; // 回退一格
             this.merge(this.board, this.piece, this.pos); // 将方块合并到棋盘
+            this.soundManager.playLandSound(); // 播放落地音效
             this.arenaSweep(); // 检测消除行
 
             // 生成新方块
@@ -198,7 +239,6 @@ export class TetrisGame {
         // 循环下落直到发生碰撞
         while (!this.collide(this.board, this.piece, { x: this.pos.x, y: this.pos.y + 1 })) {
             this.pos.y++;
-            this.score += 2; // 硬降奖励分
         }
         // 执行最终的锁定逻辑
         this.drop();
@@ -306,12 +346,15 @@ export class TetrisGame {
 
         // 积分规则
         if (rowCount > 0) {
+            this.soundManager.playClearSound(); // 播放消除音效
+
             const oldScore = this.score;
-            this.score += rowCount * 10;
+            const scoreTable = { 1: 80, 2: 160, 3: 200, 4: 300 };
+            this.score += scoreTable[rowCount] || 0;
             if (this.onScore) this.onScore(this.score);
 
-            // 积分每达到 100 分触发一次攻击判定
-            const attackLines = Math.floor(this.score / 100) - Math.floor(oldScore / 100);
+            // 积分每达到 200 分触发一次攻击判定
+            const attackLines = Math.floor(this.score / 200) - Math.floor(oldScore / 200);
             if (attackLines > 0 && this.onLinesCleared) {
                 this.onLinesCleared(attackLines);
             }
@@ -336,12 +379,39 @@ export class TetrisGame {
     }
 
     /**
+     * 绘制网格线
+     */
+    drawGrid() {
+        this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)'; // 淡淡的白线
+        this.ctx.lineWidth = 1;
+
+        // 绘制竖线
+        for (let i = 1; i < CONSTANTS.COLS; i++) {
+            this.ctx.beginPath();
+            this.ctx.moveTo(i * CONSTANTS.BLOCK_SIZE, 0);
+            this.ctx.lineTo(i * CONSTANTS.BLOCK_SIZE, this.canvas.height);
+            this.ctx.stroke();
+        }
+
+        // 绘制横线
+        for (let i = 1; i < CONSTANTS.ROWS; i++) {
+            this.ctx.beginPath();
+            this.ctx.moveTo(0, i * CONSTANTS.BLOCK_SIZE);
+            this.ctx.lineTo(this.canvas.width, i * CONSTANTS.BLOCK_SIZE);
+            this.ctx.stroke();
+        }
+    }
+
+    /**
      * 绘制函数
      */
     draw() {
         // 清空背景
         this.ctx.fillStyle = '#000';
         this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+
+        // 绘制网格
+        this.drawGrid();
 
         // 绘制棋盘
         this.drawMatrix(this.board, { x: 0, y: 0 });
