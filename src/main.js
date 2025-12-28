@@ -116,6 +116,9 @@ buttons.createRoom.addEventListener('click', () => {
 
 buttons.leaveRoom.addEventListener('click', () => {
     socket.emit('leave_room');
+    if (appState.localGame && appState.localGame.soundManager) {
+        appState.localGame.soundManager.stopBGM();
+    }
     switchView('lobby');
 });
 
@@ -204,6 +207,9 @@ socket.on('game_ready', (data) => {
     appState.localGame = new TetrisGame(localCanvas, false, seed);
     appState.remoteGame = new TetrisGame(remoteCanvas, true, seed); // 远程模式也传入相同的种子
 
+    // 播放背景音乐
+    appState.localGame.soundManager.playBGM();
+
     // 绑定本地游戏回调
 
     // 1. 分数变动
@@ -265,6 +271,7 @@ socket.on('game_ready', (data) => {
     appState.localGame.onGameOver = () => {
         // 第一时间通知对手我输了
         socket.emit('game_action', { type: 'game_over' });
+        appState.localGame.soundManager.stopBGM(); // 停止音乐
         showGameOver(false); // 显示失败状态 (侧边栏)
     };
 
@@ -290,6 +297,7 @@ socket.on('game_action', (data) => {
     } else if (data.type === 'game_over') {
         // 对手输了 -> 我赢了
         appState.localGame.gameOver = true; // 停止本地游戏
+        appState.localGame.soundManager.stopBGM(); // 停止音乐
         showGameOver(true); // 显示胜利状态 (侧边栏)
     } else if (data.type === 'garbage') {
         // 收到垃圾行攻击
@@ -327,7 +335,10 @@ function resetGameView() {
     document.getElementById('remote-score').textContent = '0';
 
     // 终止旧的游戏循环
-    if (appState.localGame) appState.localGame.gameOver = true;
+    if (appState.localGame) {
+        appState.localGame.gameOver = true;
+        if (appState.localGame.soundManager) appState.localGame.soundManager.stopBGM();
+    }
     if (appState.remoteGame) appState.remoteGame.gameOver = true;
 }
 
@@ -352,6 +363,10 @@ socket.on('player_left', () => {
     display.status.textContent = '对手已离开';
     display.status.className = 'status-bar lose'; // 用醒目颜色显示
     display.status.classList.remove('hidden');
+
+    if (appState.localGame && appState.localGame.soundManager) {
+        appState.localGame.soundManager.stopBGM();
+    }
 
     // 禁用重开按钮（因为没人了）
     buttons.restartGame.disabled = true;
