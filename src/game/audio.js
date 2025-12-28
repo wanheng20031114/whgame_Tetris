@@ -14,7 +14,13 @@ export class SoundManager {
             }
         } catch (e) {
             console.warn('Web Audio API not supported', e);
+            console.warn('Web Audio API not supported', e);
         }
+
+        // 背景音乐 (HTML5 Audio)
+        this.bgm = new Audio('/music/playing.mp3');
+        this.bgm.loop = true;
+        this.bgm.volume = 0.15; // 降低音量
     }
 
     /**
@@ -104,5 +110,28 @@ export class SoundManager {
 
         osc.start(t);
         osc.stop(t + 0.1);
+    }
+    /**
+     * 播放背景音乐
+     */
+    playBGM() {
+        if (!this.bgm) return;
+        this.bgm.currentTime = 0;
+        // 处理自动播放策略
+        const playPromise = this.bgm.play();
+        if (playPromise !== undefined) {
+            playPromise.catch(error => {
+                console.log("BGM playback prevented by browser:", error);
+            });
+        }
+    }
+
+    /**
+     * 停止背景音乐
+     */
+    stopBGM() {
+        if (!this.bgm) return;
+        this.bgm.pause();
+        this.bgm.currentTime = 0;
     }
 }
