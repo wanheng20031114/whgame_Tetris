@@ -10,6 +10,20 @@ const { v4: uuidv4 } = require('uuid');
 // }
 const rooms = new Map();
 
+// 在线用户列表
+// Key: socket.id
+// Value: { userId, username, ready: boolean, roomId: string|null }
+const connectedUsers = new Map();
+
+/**
+ * 广播在线用户列表给所有客户端
+ * @param {Server} io
+ */
+function broadcastUserList(io) {
+    const userList = Array.from(connectedUsers.values());
+    io.emit('online_users', userList);
+}
+
 /**
  * Socket.IO 事件处理器模块
  * @param {Server} io - Socket.IO 服务器实例
@@ -30,6 +44,10 @@ module.exports = (io, db) => {
 
         // 自动加入 'lobby' 频道，方便广播大厅信息
         socket.join('lobby');
+
+        // 记录在线用户
+        connectedUsers.set(socket.id, { userId, username });
+        broadcastUserList(io);
 
         // 向新连接的用户发送当前的房间列表
         socket.emit('room_list', Array.from(rooms.values()));
@@ -117,6 +135,10 @@ module.exports = (io, db) => {
          * 用户关闭浏览器或网络中断
          */
         socket.on('disconnect', () => {
+            // 移除在线用户
+            connectedUsers.delete(socket.id);
+            broadcastUserList(io);
+
             handleLeave(socket, io);
         });
 

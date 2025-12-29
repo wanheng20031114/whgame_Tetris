@@ -225,9 +225,62 @@ button:hover {
 #rooms {
     list-style: none;
     padding: 0;
-    max-height: 300px;
+    max-height: 400px;
     overflow-y: auto;
     /* 房间多时滚动 */
+}
+
+/* 
+ * 两栏大厅布局 
+ */
+.lobby-content {
+    display: flex;
+    gap: 20px;
+    align-items: flex-start;
+    min-width: 600px;
+}
+
+.room-column,
+.player-column {
+    flex: 1;
+    background: rgba(0, 0, 0, 0.2);
+    padding: 15px;
+    border-radius: 8px;
+    min-height: 300px;
+}
+
+.player-column h3,
+.room-column h3 {
+    margin-top: 0;
+    border-bottom: 2px solid var(--neon-blue);
+    padding-bottom: 10px;
+    color: var(--neon-pink);
+}
+
+#online-players {
+    list-style: none;
+    padding: 0;
+    text-align: left;
+}
+
+#online-players li {
+    padding: 8px;
+    margin-bottom: 5px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    display: flex;
+    align-items: center;
+}
+
+/* 在线状态小绿点 */
+#online-players li::before {
+    content: '';
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    background-color: #0DFF72;
+    border-radius: 50%;
+    margin-right: 10px;
+    box-shadow: 0 0 5px #0DFF72;
 }
 
 .room-item {

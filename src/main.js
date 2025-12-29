@@ -176,6 +176,23 @@ socket.on('room_list', (rooms) => {
     });
 });
 
+// 在线玩家列表更新
+socket.on('online_users', (users) => {
+    console.log('Online Users:', users);
+    const playerList = document.getElementById('online-players');
+    if (!playerList) return;
+
+    playerList.innerHTML = '';
+    users.forEach(user => {
+        const li = document.createElement('li');
+        // 如果是自己，加个标记
+        const isSelf = appState.user && user.username === appState.user.username;
+        li.textContent = user.username + (isSelf ? ' (You)' : '');
+        if (isSelf) li.style.fontWeight = 'bold';
+        playerList.appendChild(li);
+    });
+});
+
 socket.on('player_joined', (user) => {
     console.log('Player joined:', user);
     // 可扩展：在界面上显示提示 "玩家 xxx 加入了房间"
