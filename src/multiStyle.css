@@ -1,0 +1,575 @@
+/**
+ * multiStyle.css - 3-21人多人俄罗斯方块模式专用样式
+ * 针对16:9屏幕优化布局
+ */
+
+:root {
+    /* 继承主题色彩 */
+    --bg-dark: #1a1a2e;
+    --glass-bg: rgba(255, 255, 255, 0.1);
+    --glass-border: rgba(255, 255, 255, 0.2);
+    --neon-blue: #0f3460;
+    --neon-pink: #e94560;
+    --neon-green: #0DFF72;
+    --neon-yellow: #E6D44C;
+    --text-light: #fff;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    padding: 20px;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+    color: var(--text-light);
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.hidden {
+    display: none !important;
+}
+
+.view {
+    width: 100%;
+    max-width: 1600px;
+}
+
+/* ========== 等待大厅样式 ========== */
+.waiting-container {
+    background: var(--glass-bg);
+    backdrop-filter: blur(10px);
+    border: 1px solid var(--glass-border);
+    border-radius: 16px;
+    padding: 30px;
+    max-width: 800px;
+    margin: 0 auto;
+    text-align: center;
+}
+
+.waiting-container h1 {
+    margin: 0 0 20px 0;
+    background: linear-gradient(90deg, var(--neon-pink), var(--neon-yellow));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.room-info {
+    display: flex;
+    justify-content: center;
+    gap: 30px;
+    margin-bottom: 20px;
+    font-size: 1.2rem;
+}
+
+.room-info span {
+    padding: 8px 16px;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 8px;
+    border: 1px solid var(--glass-border);
+}
+
+.players-list-container {
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 12px;
+    padding: 15px;
+    margin-bottom: 20px;
+    text-align: left;
+}
+
+.players-list-container h3 {
+    margin: 0 0 10px 0;
+    color: var(--neon-pink);
+    border-bottom: 2px solid var(--neon-blue);
+    padding-bottom: 8px;
+}
+
+#waiting-players-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 10px;
+}
+
+#waiting-players-list li {
+    padding: 10px;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+#waiting-players-list li::before {
+    content: '';
+    width: 8px;
+    height: 8px;
+    background: var(--neon-green);
+    border-radius: 50%;
+    box-shadow: 0 0 5px var(--neon-green);
+}
+
+#waiting-players-list li.host::after {
+    content: '👑';
+    margin-left: auto;
+}
+
+.waiting-controls {
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+    margin-bottom: 20px;
+}
+
+.waiting-chat {
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    border-radius: 12px;
+    overflow: hidden;
+    height: 250px;
+    display: flex;
+    flex-direction: column;
+}
+
+/* ========== 游戏界面样式 (16:9 优化) ========== */
+.multi-game-area {
+    display: flex;
+    gap: 15px;
+    height: calc(100vh - 40px);
+    max-height: 800px;
+}
+
+/* 左侧自己的游戏区 - 约40% */
+.local-player-area {
+    flex: 0 0 auto;
+    width: 550px;
+    background: var(--glass-bg);
+    backdrop-filter: blur(10px);
+    border: 1px solid var(--glass-border);
+    border-radius: 15px;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+}
+
+.player-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.player-header h3 {
+    margin: 0;
+    color: var(--neon-pink);
+}
+
+.player-rank {
+    font-size: 1.5rem;
+    font-weight: bold;
+}
+
+.player-rank.eliminated {
+    color: #888;
+}
+
+.player-rank.winner {
+    color: var(--neon-green);
+}
+
+.board-wrapper {
+    display: flex;
+    gap: 15px;
+    flex: 1;
+}
+
+.next-piece-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.next-piece-container h4 {
+    margin: 0 0 10px 0;
+    color: var(--neon-pink);
+}
+
+.score {
+    margin-top: 10px;
+    font-size: 1.3rem;
+    font-weight: bold;
+    text-align: center;
+}
+
+/* 中间对手网格区 - 约45% */
+.opponents-container {
+    flex: 1;
+    background: var(--glass-bg);
+    backdrop-filter: blur(10px);
+    border: 1px solid var(--glass-border);
+    border-radius: 15px;
+    padding: 15px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.opponents-container h3 {
+    margin: 0 0 10px 0;
+    color: var(--neon-pink);
+    flex-shrink: 0;
+}
+
+#alive-count {
+    color: var(--neon-green);
+    font-size: 0.9rem;
+}
+
+.opponents-grid {
+    flex: 1;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+    gap: 10px;
+    overflow-y: auto;
+    padding-right: 5px;
+}
+
+/* 单个对手小卡片 */
+.opponent-card {
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 8px;
+    padding: 8px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    transition: all 0.3s ease;
+    border: 1px solid transparent;
+}
+
+.opponent-card:hover {
+    border-color: var(--neon-blue);
+}
+
+.opponent-card.eliminated {
+    opacity: 0.5;
+    filter: grayscale(70%);
+}
+
+.opponent-name {
+    font-size: 0.75rem;
+    margin-bottom: 5px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+}
+
+.opponent-canvas-wrapper {
+    position: relative;
+    width: 90px;
+    height: 180px;
+}
+
+.opponent-canvas-wrapper canvas {
+    width: 100%;
+    height: 100%;
+    border: 1px solid var(--glass-border);
+    border-radius: 4px;
+    background: rgba(0, 0, 0, 0.8);
+}
+
+.opponent-rank-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: rgba(0, 0, 0, 0.7);
+    font-size: 2rem;
+    font-weight: bold;
+    color: #888;
+    border-radius: 4px;
+}
+
+.opponent-score {
+    font-size: 0.7rem;
+    margin-top: 5px;
+    color: var(--neon-yellow);
+}
+
+/* 右侧聊天室 - 约20% */
+.chat-container {
+    flex: 0 0 280px;
+    background: var(--glass-bg);
+    backdrop-filter: blur(10px);
+    border: 1px solid var(--glass-border);
+    border-radius: 15px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.chat-header {
+    padding: 12px 15px;
+    background: rgba(0, 0, 0, 0.3);
+    font-weight: bold;
+    border-bottom: 1px solid var(--glass-border);
+    color: #fff;
+    flex-shrink: 0;
+}
+
+.chat-messages {
+    flex: 1;
+    padding: 10px;
+    overflow-y: auto;
+    font-size: 0.85rem;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-height: 0;
+}
+
+.chat-msg {
+    padding: 6px 10px;
+    border-radius: 6px;
+    word-wrap: break-word;
+}
+
+.chat-msg.system {
+    background: rgba(15, 52, 96, 0.5);
+    color: var(--neon-yellow);
+    font-style: italic;
+    text-align: center;
+}
+
+.chat-msg.user span {
+    color: var(--neon-pink);
+    font-weight: bold;
+}
+
+.chat-msg.attack {
+    background: rgba(233, 69, 96, 0.3);
+    color: #ff6b8a;
+    text-align: center;
+    font-size: 0.8rem;
+}
+
+.chat-input-area {
+    padding: 10px;
+    display: flex;
+    gap: 8px;
+    border-top: 1px solid var(--glass-border);
+    background: rgba(0, 0, 0, 0.2);
+    flex-shrink: 0;
+}
+
+.chat-input-area input {
+    flex: 1;
+    padding: 8px 12px;
+    border: none;
+    border-radius: 6px;
+    background: rgba(0, 0, 0, 0.3);
+    color: white;
+    font-size: 0.9rem;
+}
+
+.chat-input-area input:focus {
+    outline: 1px solid var(--neon-blue);
+}
+
+.chat-controls-area {
+    padding: 10px;
+    background: rgba(0, 0, 0, 0.4);
+    display: flex;
+    gap: 8px;
+    flex-shrink: 0;
+    border-top: 1px solid var(--glass-border);
+}
+
+/* 状态栏 */
+.status-bar {
+    padding: 10px;
+    text-align: center;
+    font-weight: bold;
+    font-size: 1rem;
+    background: rgba(0, 0, 0, 0.6);
+    border-top: 1px solid var(--glass-border);
+    flex-shrink: 0;
+}
+
+.status-bar.win {
+    color: var(--neon-green);
+    border-left: 4px solid var(--neon-green);
+}
+
+.status-bar.lose {
+    color: var(--neon-pink);
+    border-left: 4px solid var(--neon-pink);
+}
+
+.status-bar.spectating {
+    color: var(--neon-yellow);
+    border-left: 4px solid var(--neon-yellow);
+}
+
+/* ========== 按钮样式 ========== */
+button {
+    background: var(--neon-pink);
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.95rem;
+    font-weight: bold;
+    transition: all 0.2s ease;
+}
+
+button:hover {
+    transform: scale(1.03);
+    filter: brightness(1.1);
+}
+
+button:disabled {
+    background: #555;
+    color: #999;
+    cursor: not-allowed;
+    transform: none;
+    filter: none;
+}
+
+.control-btn {
+    flex: 1;
+    font-size: 0.85rem;
+    padding: 8px;
+}
+
+.control-btn.start {
+    background: var(--neon-green);
+    color: #000;
+}
+
+.control-btn.start:hover {
+    background: #2fff90;
+}
+
+.control-btn.restart {
+    background: var(--neon-yellow);
+    color: #000;
+}
+
+.control-btn.restart:hover {
+    background: #ffe843;
+}
+
+.control-btn.leave {
+    background: var(--neon-pink);
+}
+
+/* ========== 画布样式 ========== */
+canvas {
+    border: 2px solid var(--glass-border);
+    background-color: rgba(0, 0, 0, 0.8);
+    box-shadow: 0 0 15px rgba(0, 0, 0, 0.5);
+    border-radius: 4px;
+}
+
+#local-board {
+    width: 300px;
+    height: 600px;
+}
+
+#next-piece {
+    width: 120px;
+    height: 120px;
+}
+
+/* ========== 响应式调整 ========== */
+@media (max-width: 1400px) {
+    .local-player-area {
+        width: 480px;
+    }
+
+    .chat-container {
+        flex: 0 0 240px;
+    }
+
+    .opponents-grid {
+        grid-template-columns: repeat(auto-fill, minmax(95px, 1fr));
+    }
+
+    .opponent-canvas-wrapper {
+        width: 75px;
+        height: 150px;
+    }
+}
+
+@media (max-width: 1200px) {
+    .multi-game-area {
+        flex-wrap: wrap;
+        max-height: none;
+    }
+
+    .local-player-area {
+        width: 100%;
+        flex-direction: row;
+        align-items: center;
+        gap: 20px;
+    }
+
+    .opponents-container {
+        width: 100%;
+        max-height: 300px;
+    }
+
+    .chat-container {
+        width: 100%;
+        flex: 0 0 auto;
+        height: 250px;
+    }
+}
+
+/* ========== 动画 ========== */
+@keyframes pulse {
+
+    0%,
+    100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.7;
+    }
+}
+
+.opponent-card.attacking {
+    animation: pulse 0.3s ease;
+    border-color: var(--neon-pink);
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.chat-msg {
+    animation: fadeIn 0.2s ease;
+}

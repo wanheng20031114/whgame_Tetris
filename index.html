@@ -28,12 +28,53 @@
                 <span id="user-display"></span>
             </header>
             <div class="lobby-content">
-                <div class="room-list">
+                <div class="room-column">
                     <h3>Available Rooms</h3>
                     <ul id="rooms"></ul>
+                    <div class="lobby-controls">
+                        <button id="create-room-btn">创建房间</button>
+                    </div>
                 </div>
-                <div class="lobby-controls">
-                    <button id="create-room-btn">Create Room</button>
+                <div class="player-column">
+                    <h3>Online Players</h3>
+                    <ul id="online-players"></ul>
+                </div>
+            </div>
+
+            <!-- 房间类型选择模态框 -->
+            <div id="room-type-modal" class="modal hidden">
+                <div class="modal-content">
+                    <h2>🎮 选择游戏模式</h2>
+                    <div class="mode-buttons">
+                        <button id="mode-2p-btn" class="mode-btn mode-2p">
+                            <span class="mode-icon">👥</span>
+                            <span class="mode-title">2人对战</span>
+                            <span class="mode-desc">经典1v1对决</span>
+                        </button>
+                        <button id="mode-multi-btn" class="mode-btn mode-multi">
+                            <span class="mode-icon">👥👥👥</span>
+                            <span class="mode-title">3-21人多人</span>
+                            <span class="mode-desc">多人混战大乱斗</span>
+                        </button>
+                    </div>
+
+                    <!-- 多人模式人数选择 -->
+                    <div id="multi-player-select" class="hidden">
+                        <label for="max-players">选择最大人数:</label>
+                        <select id="max-players">
+                            <option value="3">3人</option>
+                            <option value="4">4人</option>
+                            <option value="5">5人</option>
+                            <option value="6">6人</option>
+                            <option value="8">8人</option>
+                            <option value="10">10人</option>
+                            <option value="15">15人</option>
+                            <option value="21">21人</option>
+                        </select>
+                        <button id="confirm-multi-btn">确认创建</button>
+                    </div>
+
+                    <button id="modal-close-btn" class="modal-close">✕</button>
                 </div>
             </div>
         </div>

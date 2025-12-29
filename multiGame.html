@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>whgame Tetris - 多人对战</title>
+    <link rel="stylesheet" href="/src/multiStyle.css">
+    <link rel="icon" type="image/x-icon" href="/favicon.ico?v=2" />
+</head>
+
+<body>
+    <div id="app">
+        <!-- 等待大厅视图 (等待房主开始) -->
+        <div id="waiting-view" class="view">
+            <div class="waiting-container">
+                <h1>多人俄罗斯方块</h1>
+                <div class="room-info">
+                    <span id="room-id-display">Room: ---</span>
+                    <span id="player-count-display">玩家: 0/0</span>
+                </div>
+
+                <!-- 玩家列表 -->
+                <div class="players-list-container">
+                    <h3>房间玩家</h3>
+                    <ul id="waiting-players-list"></ul>
+                </div>
+
+                <!-- 控制按钮 -->
+                <div class="waiting-controls">
+                    <button id="start-game-btn" class="control-btn start" disabled>开始游戏</button>
+                    <button id="leave-waiting-btn" class="control-btn leave">离开房间</button>
+                </div>
+
+                <!-- 聊天室 -->
+                <div class="waiting-chat">
+                    <div class="chat-header">聊天室</div>
+                    <div class="chat-messages" id="waiting-chat-messages"></div>
+                    <div class="chat-input-area">
+                        <input type="text" id="waiting-chat-input" placeholder="输入消息..." maxlength="100">
+                        <button id="waiting-chat-send-btn">发送</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 游戏进行中视图 -->
+        <div id="game-view" class="view hidden">
+            <div class="multi-game-area">
+                <!-- 左侧：自己的大游戏区 -->
+                <div class="local-player-area">
+                    <div class="player-header">
+                        <h3 id="local-player-name">你</h3>
+                        <span class="player-rank" id="local-rank"></span>
+                    </div>
+                    <div class="board-wrapper">
+                        <canvas id="local-board" width="300" height="600"></canvas>
+                        <div class="next-piece-container">
+                            <h4>Next</h4>
+                            <canvas id="next-piece" width="120" height="120"></canvas>
+                        </div>
+                    </div>
+                    <div class="score">分数: <span id="local-score">0</span></div>
+                </div>
+
+                <!-- 中间：其他玩家的缩小视图 -->
+                <div class="opponents-container">
+                    <h3>对手 <span id="alive-count">(0 存活)</span></h3>
+                    <div class="opponents-grid" id="opponents-grid">
+                        <!-- 动态生成的 opponent-mini-board -->
+                    </div>
+                </div>
+
+                <!-- 右侧：聊天室和控制 -->
+                <div class="chat-container">
+                    <div class="chat-header">聊天室</div>
+                    <div class="chat-messages" id="game-chat-messages"></div>
+                    <div id="game-status" class="status-bar hidden"></div>
+                    <div class="chat-input-area">
+                        <input type="text" id="game-chat-input" placeholder="输入消息..." maxlength="100">
+                        <button id="game-chat-send-btn">发送</button>
+                    </div>
+                    <div class="chat-controls-area">
+                        <button id="restart-game-btn" class="control-btn restart" disabled>重新开始</button>
+                        <button id="leave-game-btn" class="control-btn leave">离开房间</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script type="module" src="/src/mainMulti.js"></script>
+</body>
+
+</html>

@@ -58,12 +58,11 @@ body {
 }
 
 .chat-header {
-    padding: 15px;
+    padding: 12px 15px;
     background: rgba(0, 0, 0, 0.3);
     font-weight: bold;
     border-bottom: 1px solid var(--glass-border);
-    color: var(--neon-blue);
-    letter-spacing: 1px;
+    color: #fff;
     flex-shrink: 0;
 }
 
@@ -225,9 +224,63 @@ button:hover {
 #rooms {
     list-style: none;
     padding: 0;
-    max-height: 300px;
+    max-height: 400px;
     overflow-y: auto;
     /* 房间多时滚动 */
+}
+
+/* 
+ * 两栏大厅布局 
+ */
+.lobby-content {
+    display: flex;
+    gap: 30px;
+    align-items: flex-start;
+    min-width: 800px;
+}
+
+.room-column,
+.player-column {
+    flex: 1;
+    background: rgba(0, 0, 0, 0.2);
+    padding: 20px;
+    border-radius: 8px;
+    min-height: 350px;
+    min-width: 480px;
+}
+
+.player-column h3,
+.room-column h3 {
+    margin-top: 0;
+    border-bottom: 2px solid var(--neon-blue);
+    padding-bottom: 10px;
+    color: var(--neon-pink);
+}
+
+#online-players {
+    list-style: none;
+    padding: 0;
+    text-align: left;
+}
+
+#online-players li {
+    padding: 8px;
+    margin-bottom: 5px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    display: flex;
+    align-items: center;
+}
+
+/* 在线状态小绿点 */
+#online-players li::before {
+    content: '';
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    background-color: #0DFF72;
+    border-radius: 50%;
+    margin-right: 10px;
+    box-shadow: 0 0 5px #0DFF72;
 }
 
 .room-item {
@@ -287,4 +340,154 @@ canvas {
     margin-top: 10px;
     font-size: 1.2rem;
     font-weight: bold;
+}
+
+/* ========== 模态框样式 ========== */
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.8);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    animation: fadeIn 0.2s ease;
+}
+
+.modal.hidden {
+    display: none;
+}
+
+.modal-content {
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+    border: 2px solid var(--glass-border);
+    border-radius: 20px;
+    padding: 30px 40px;
+    text-align: center;
+    max-width: 500px;
+    position: relative;
+    box-shadow: 0 0 40px rgba(233, 69, 96, 0.3);
+}
+
+.modal-content h2 {
+    margin: 0 0 25px 0;
+    font-size: 1.8rem;
+}
+
+.modal-close {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    background: transparent;
+    border: none;
+    color: #888;
+    font-size: 1.5rem;
+    cursor: pointer;
+    padding: 5px 10px;
+}
+
+.modal-close:hover {
+    color: var(--neon-pink);
+    transform: none;
+}
+
+/* 模式选择按钮 */
+.mode-buttons {
+    display: flex;
+    gap: 20px;
+    justify-content: center;
+    margin-bottom: 20px;
+}
+
+.mode-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 25px 30px;
+    border-radius: 15px;
+    background: rgba(0, 0, 0, 0.3);
+    border: 2px solid var(--glass-border);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    min-width: 160px;
+}
+
+.mode-btn:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+}
+
+.mode-btn.mode-2p:hover {
+    border-color: var(--neon-blue);
+    box-shadow: 0 0 20px rgba(15, 52, 96, 0.5);
+}
+
+.mode-btn.mode-multi:hover {
+    border-color: var(--neon-pink);
+    box-shadow: 0 0 20px rgba(233, 69, 96, 0.5);
+}
+
+.mode-icon {
+    font-size: 2.5rem;
+    margin-bottom: 10px;
+}
+
+.mode-title {
+    font-size: 1.2rem;
+    font-weight: bold;
+    margin-bottom: 5px;
+}
+
+.mode-desc {
+    font-size: 0.85rem;
+    color: #888;
+}
+
+/* 多人模式人数选择 */
+#multi-player-select {
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 1px solid var(--glass-border);
+}
+
+#multi-player-select label {
+    margin-right: 10px;
+}
+
+#multi-player-select select {
+    padding: 8px 15px;
+    border-radius: 6px;
+    background: rgba(0, 0, 0, 0.3);
+    color: white;
+    border: 1px solid var(--glass-border);
+    font-size: 1rem;
+    margin-right: 15px;
+}
+
+#confirm-multi-btn {
+    background: var(--neon-pink);
+    padding: 10px 25px;
+}
+
+/* 房间类型标签 */
+.room-type-tag {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: bold;
+    margin-right: 8px;
+}
+
+.tag-2p {
+    background: rgba(15, 52, 96, 0.8);
+    color: #5c85e6;
+}
+
+.tag-multi {
+    background: rgba(233, 69, 96, 0.3);
+    color: var(--neon-pink);
 }
