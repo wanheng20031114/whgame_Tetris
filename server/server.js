@@ -75,6 +75,10 @@ const socketHandler = require('./socket');
 // 将 socket 处理逻辑分拆到 socket.js 中，并传入 io 和 db 实例
 socketHandler(io, db);
 
+// 多人模式 Socket 处理器 (3-21人)
+const socketMultiHandler = require('./socketMulti');
+socketMultiHandler(io, db);
+
 // 启动服务器
 const PORT = 3000;
 // 监听 0.0.0.0 以允许局域网访问

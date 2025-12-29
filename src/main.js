@@ -44,6 +44,17 @@ const display = {
     status: document.getElementById('game-status')
 };
 
+// 模态框相关元素
+const modal = {
+    container: document.getElementById('room-type-modal'),
+    mode2pBtn: document.getElementById('mode-2p-btn'),
+    modeMultiBtn: document.getElementById('mode-multi-btn'),
+    multiPlayerSelect: document.getElementById('multi-player-select'),
+    maxPlayersSelect: document.getElementById('max-players'),
+    confirmMultiBtn: document.getElementById('confirm-multi-btn'),
+    closeBtn: document.getElementById('modal-close-btn')
+};
+
 // 初始化：禁用只有游戏结束后才能用的按钮
 buttons.restartGame.disabled = true;
 
@@ -86,6 +97,9 @@ async function handleAuth(endpoint) {
                 appState.user = data.user;
                 display.user.textContent = `User: ${data.user.username}`;
 
+                // 保存用户信息到 localStorage（用于多人模式页面）
+                localStorage.setItem('tetris_user', JSON.stringify(data.user));
+
                 // 配置 Socket 认证信息并连接
                 socket.auth = { userId: data.user.id, username: data.user.username };
                 socket.connect();
@@ -111,7 +125,40 @@ buttons.login.addEventListener('click', () => handleAuth('login'));
 buttons.register.addEventListener('click', () => handleAuth('register'));
 
 buttons.createRoom.addEventListener('click', () => {
+    // 打开模态框选择游戏模式
+    modal.container.classList.remove('hidden');
+    modal.multiPlayerSelect.classList.add('hidden'); // 重置状态
+});
+
+// 模态框事件处理
+modal.closeBtn.addEventListener('click', () => {
+    modal.container.classList.add('hidden');
+});
+
+// 点击模态框背景关闭
+modal.container.addEventListener('click', (e) => {
+    if (e.target === modal.container) {
+        modal.container.classList.add('hidden');
+    }
+});
+
+// 选择 2人对战模式
+modal.mode2pBtn.addEventListener('click', () => {
+    modal.container.classList.add('hidden');
     socket.emit('create_room');
+});
+
+// 选择多人模式 - 显示人数选择
+modal.modeMultiBtn.addEventListener('click', () => {
+    modal.multiPlayerSelect.classList.remove('hidden');
+});
+
+// 确认创建多人房间
+modal.confirmMultiBtn.addEventListener('click', () => {
+    const maxPlayers = modal.maxPlayersSelect.value;
+    modal.container.classList.add('hidden');
+    // 跳转到多人游戏页面
+    window.location.href = `/multiGame.html?action=create&max=${maxPlayers}`;
 });
 
 buttons.leaveRoom.addEventListener('click', () => {
@@ -152,22 +199,53 @@ socket.on('room_joined', (roomId) => {
     switchView('game');
 });
 
-// 大厅房间列表更新
+// 大厅2人房间列表更新
 socket.on('room_list', (rooms) => {
-    console.log('Rooms:', rooms);
+    console.log('2P Rooms:', rooms);
+    // 清空现有列表，但保留多人房间
+    const existingMulti = display.rooms.querySelectorAll('.room-item.multi');
     display.rooms.innerHTML = '';
+
+    // 添加 2人房间
     rooms.forEach(room => {
         const li = document.createElement('li');
-        li.className = 'room-item';
+        li.className = 'room-item room-2p';
         // 显示房间信息：ID，人数，状态
-        li.textContent = `Room ${room.id} (${Object.keys(room.players).length}/2) - ${room.status}`;
+        li.innerHTML = `<span class="room-type-tag tag-2p">[双人]</span> Room ${room.id} (${Object.keys(room.players).length}/2) - ${room.status}`;
 
         // 如果房间在等待且未满员，显示加入按钮
         if (room.status === 'waiting' && Object.keys(room.players).length < 2) {
             const joinBtn = document.createElement('button');
-            joinBtn.textContent = 'Join';
+            joinBtn.textContent = '加入';
             joinBtn.onclick = () => {
                 socket.emit('join_room', room.id);
+            };
+            li.appendChild(joinBtn);
+        }
+
+        display.rooms.appendChild(li);
+    });
+});
+
+// 多人房间列表更新
+socket.on('multi_room_list', (rooms) => {
+    console.log('Multi Rooms:', rooms);
+    // 移除现有的多人房间项
+    display.rooms.querySelectorAll('.room-item.multi').forEach(el => el.remove());
+
+    // 添加多人房间
+    rooms.forEach(room => {
+        const li = document.createElement('li');
+        li.className = 'room-item multi';
+        li.innerHTML = `<span class="room-type-tag tag-multi">[多人]</span> Room ${room.id} (${room.playerCount}/${room.maxPlayers}) - ${room.status}`;
+
+        // 如果房间在等待且未满员，显示加入按钮
+        if (room.status === 'waiting' && room.playerCount < room.maxPlayers) {
+            const joinBtn = document.createElement('button');
+            joinBtn.textContent = '加入';
+            joinBtn.onclick = () => {
+                // 跳转到多人游戏页面
+                window.location.href = `/multiGame.html?action=join&room=${room.id}`;
             };
             li.appendChild(joinBtn);
         }

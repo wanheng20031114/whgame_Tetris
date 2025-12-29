@@ -5,7 +5,7 @@ import { SoundManager } from './audio.js';
 export const CONSTANTS = {
     COLS: 10,        // 棋盘列数
     ROWS: 20,        // 棋盘行数
-    BLOCK_SIZE: 30,  // 方块像素大小
+    BLOCK_SIZE: 30,  // 方块像素大小（默认值）
     // 方块颜色映射 (索引 1-7 对应7种方块，8为垃圾行)
     COLORS: [
         null,
@@ -98,11 +98,13 @@ export class TetrisGame {
      * @param {HTMLCanvasElement} canvas - 游戏画布元素
      * @param {boolean} isRemote - 是否为远程玩家（镜像模式），如果是则不处理输入和掉落循环
      * @param {number} seed - 随机种子，确保双方方块序列一致
+     * @param {number} blockSize - 方块大小（用于缩小渲染）
      */
-    constructor(canvas, isRemote = false, seed = 1) {
+    constructor(canvas, isRemote = false, seed = 1, blockSize = CONSTANTS.BLOCK_SIZE) {
         this.ctx = canvas.getContext('2d');
         this.canvas = canvas;
         this.isRemote = isRemote;
+        this.blockSize = blockSize; // 支持可配置方块大小
         this.rng = new Random(seed); // 初始化随机数生成器
 
         this.board = this.createBoard();
@@ -388,16 +390,16 @@ export class TetrisGame {
         // 绘制竖线
         for (let i = 1; i < CONSTANTS.COLS; i++) {
             this.ctx.beginPath();
-            this.ctx.moveTo(i * CONSTANTS.BLOCK_SIZE, 0);
-            this.ctx.lineTo(i * CONSTANTS.BLOCK_SIZE, this.canvas.height);
+            this.ctx.moveTo(i * this.blockSize, 0);
+            this.ctx.lineTo(i * this.blockSize, this.canvas.height);
             this.ctx.stroke();
         }
 
         // 绘制横线
         for (let i = 1; i < CONSTANTS.ROWS; i++) {
             this.ctx.beginPath();
-            this.ctx.moveTo(0, i * CONSTANTS.BLOCK_SIZE);
-            this.ctx.lineTo(this.canvas.width, i * CONSTANTS.BLOCK_SIZE);
+            this.ctx.moveTo(0, i * this.blockSize);
+            this.ctx.lineTo(this.canvas.width, i * this.blockSize);
             this.ctx.stroke();
         }
     }
@@ -431,10 +433,10 @@ export class TetrisGame {
                 if (value !== 0) {
                     this.ctx.fillStyle = CONSTANTS.COLORS[value];
                     // 绘制方块，留出1px间隙以显示网格感
-                    this.ctx.fillRect((x + offset.x) * CONSTANTS.BLOCK_SIZE,
-                        (y + offset.y) * CONSTANTS.BLOCK_SIZE,
-                        CONSTANTS.BLOCK_SIZE - 1,
-                        CONSTANTS.BLOCK_SIZE - 1);
+                    this.ctx.fillRect((x + offset.x) * this.blockSize,
+                        (y + offset.y) * this.blockSize,
+                        this.blockSize - 1,
+                        this.blockSize - 1);
                 }
             });
         });

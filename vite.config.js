@@ -1,8 +1,18 @@
 
 import { defineConfig } from 'vite';
+import { resolve } from 'path';
 
 // Vite 配置文件
 export default defineConfig({
+  // 多页面入口配置
+  build: {
+    rollupOptions: {
+      input: {
+        main: resolve(__dirname, 'index.html'),
+        multi: resolve(__dirname, 'multiGame.html')
+      }
+    }
+  },
   server: {
     allowedHosts: ['www.wszzwh.site'], //开在这里了
     // 代理配置：解决前端开发服务器与后端 API 服务器跨域问题
