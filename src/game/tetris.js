@@ -128,7 +128,28 @@ export class TetrisGame {
         this.onNextPiece = null;   // 用于通知UI更新下一个方块预览
         this.onLinesCleared = null; // 消除行回调
 
+        // 7-Bag 系统：保证每7个方块中各种类型各出现一次
+        this.bag = [];
+
         this.soundManager = new SoundManager();
+    }
+
+    /**
+     * 填充方块袋子 (7-Bag 系统)
+     * 将 0-6 的方块索引打乱后放入袋子
+     */
+    fillBag() {
+        // 创建 0-6 的数组
+        const pieces = [0, 1, 2, 3, 4, 5, 6];
+
+        // Fisher-Yates 洗牌算法（使用种子随机数）
+        for (let i = pieces.length - 1; i > 0; i--) {
+            const j = this.rng.nextInt(i + 1);
+            [pieces[i], pieces[j]] = [pieces[j], pieces[i]];
+        }
+
+        // 加入袋子
+        this.bag.push(...pieces);
     }
 
     /**
@@ -157,6 +178,12 @@ export class TetrisGame {
         this.dropInterval = CONSTANTS.INITIAL_SPEED;
         this.dropCounter = 0;
 
+        // 记录游戏开始时间（用于加速机制）
+        this.gameStartTime = Date.now();
+
+        // 重置 7-Bag 系统
+        this.bag = [];
+
         // 初始化方块
         this.nextPiece = this.randomPiece();
         this.piece = this.randomPiece();
@@ -167,13 +194,17 @@ export class TetrisGame {
     }
 
     /**
-     * 生成随机方块矩阵
-     */
-    /**
-     * 生成随机方块矩阵
+     * 从 7-Bag 中获取下一个方块
+     * 保证每 7 个方块中，每种类型各出现恰好 1 次
      */
     randomPiece() {
-        const id = this.rng.nextInt(PIECES.length);
+        // 如果袋子空了，填充新的 7 个方块
+        if (this.bag.length === 0) {
+            this.fillBag();
+        }
+
+        // 从袋子取出一个
+        const id = this.bag.shift();
         const matrix = PIECES[id];
         // 深拷贝矩阵，防止修改原定义
         return matrix.map(row => [...row]);
@@ -188,6 +219,11 @@ export class TetrisGame {
 
         const deltaTime = time - this.lastTime;
         this.lastTime = time;
+
+        // 计算游戏进行时间（分钟，浮点数）
+        const elapsedMinutes = (Date.now() - this.gameStartTime) / 60000;
+        // 平滑加速：每分钟减少100毫秒，连续渐进而非阶梯跳变，最低100毫秒
+        this.dropInterval = Math.max(150, CONSTANTS.INITIAL_SPEED - elapsedMinutes * 100);
 
         // 处理自动下落
         this.dropCounter += deltaTime;
@@ -351,7 +387,7 @@ export class TetrisGame {
             this.soundManager.playClearSound(); // 播放消除音效
 
             const oldScore = this.score;
-            const scoreTable = { 1: 80, 2: 160, 3: 200, 4: 300 };
+            const scoreTable = { 1: 80, 2: 160, 3: 280, 4: 400 };
             this.score += scoreTable[rowCount] || 0;
             if (this.onScore) this.onScore(this.score);
 
