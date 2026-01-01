@@ -47,6 +47,7 @@ const display = {
 // 模态框相关元素
 const modal = {
     container: document.getElementById('room-type-modal'),
+    modeSingleBtn: document.getElementById('mode-single-btn'), // 单人模式按钮
     mode2pBtn: document.getElementById('mode-2p-btn'),
     modeMultiBtn: document.getElementById('mode-multi-btn'),
     multiPlayerSelect: document.getElementById('multi-player-select'),
@@ -140,6 +141,12 @@ modal.container.addEventListener('click', (e) => {
     if (e.target === modal.container) {
         modal.container.classList.add('hidden');
     }
+});
+
+// 选择单人模式 - 跳转到单人游戏页面
+modal.modeSingleBtn.addEventListener('click', () => {
+    modal.container.classList.add('hidden');
+    window.location.href = '/singleGame.html';
 });
 
 // 选择 2人对战模式

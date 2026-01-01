@@ -420,6 +420,11 @@ canvas {
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
 }
 
+.mode-btn.mode-single:hover {
+    border-color: #ffd700;
+    box-shadow: 0 0 20px rgba(255, 215, 0, 0.5);
+}
+
 .mode-btn.mode-2p:hover {
     border-color: var(--neon-blue);
     box-shadow: 0 0 20px rgba(15, 52, 96, 0.5);
