@@ -24,6 +24,8 @@ const elements = {
     timeDisplay: document.getElementById('time-display'),
     gameOverOverlay: document.getElementById('game-over-overlay'),
     finalScoreValue: document.getElementById('final-score-value'),
+    newHighScore: document.getElementById('new-high-score'),
+    leaderboardList: document.getElementById('leaderboard-list'),
     backBtn: document.getElementById('back-btn'),
     restartBtn: document.getElementById('restart-btn'),
     backToLobbyBtn: document.getElementById('back-to-lobby-btn')
@@ -208,7 +210,9 @@ function stopTimer() {
  */
 function showGameOver() {
     elements.finalScoreValue.textContent = appState.game.score;
+    elements.newHighScore.classList.add('hidden'); // 隐藏新纪录提示
     elements.gameOverOverlay.classList.remove('hidden');
+    loadLeaderboard(); // 加载排行榜
 }
 
 /**
@@ -235,12 +239,65 @@ async function saveScore(score) {
         const data = await response.json();
         if (data.success) {
             console.log('分数保存成功');
+            // 如果是新纪录，显示提示
+            if (data.newHighScore) {
+                elements.newHighScore.classList.remove('hidden');
+            }
+            // 重新加载排行榜以显示最新数据
+            loadLeaderboard();
         } else {
             console.error('分数保存失败:', data.error);
         }
     } catch (error) {
         console.error('网络错误，分数保存失败:', error);
     }
+}
+
+/**
+ * 加载排行榜
+ */
+async function loadLeaderboard() {
+    try {
+        const response = await fetch('/api/leaderboard');
+        const data = await response.json();
+
+        if (data.success && data.leaderboard) {
+            renderLeaderboard(data.leaderboard);
+        } else {
+            elements.leaderboardList.innerHTML = '<li class="error">加载失败</li>';
+        }
+    } catch (error) {
+        console.error('加载排行榜失败:', error);
+        elements.leaderboardList.innerHTML = '<li class="error">网络错误</li>';
+    }
+}
+
+/**
+ * 渲染排行榜
+ * @param {Array} leaderboard - 排行榜数据
+ */
+function renderLeaderboard(leaderboard) {
+    if (leaderboard.length === 0) {
+        elements.leaderboardList.innerHTML = '<li class="empty">暂无记录</li>';
+        return;
+    }
+
+    const currentUsername = appState.user ? appState.user.username : null;
+
+    elements.leaderboardList.innerHTML = leaderboard.map((entry, index) => {
+        const rank = index + 1;
+        const isCurrentUser = entry.username === currentUsername;
+        const rankClass = rank === 1 ? 'gold' : rank === 2 ? 'silver' : rank === 3 ? 'bronze' : '';
+        const userClass = isCurrentUser ? 'current-user' : '';
+
+        return `
+            <li class="${rankClass} ${userClass}">
+                <span class="rank">${rank}</span>
+                <span class="username">${entry.username}</span>
+                <span class="score">${entry.score}</span>
+            </li>
+        `;
+    }).join('');
 }
 
 // ========== 键盘控制 ==========

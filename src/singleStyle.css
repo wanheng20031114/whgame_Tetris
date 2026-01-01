@@ -317,6 +317,132 @@ header h1 {
     transform: scale(1.05);
 }
 
+/* ========== 新纪录提示 ========== */
+.new-high-score {
+    font-size: 1.5rem;
+    color: #ffd700;
+    margin-bottom: 20px;
+    animation: pulse 1s ease-in-out infinite;
+}
+
+.new-high-score.hidden {
+    display: none;
+}
+
+@keyframes pulse {
+
+    0%,
+    100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+
+    50% {
+        opacity: 0.8;
+        transform: scale(1.05);
+    }
+}
+
+/* ========== 排行榜样式 ========== */
+.leaderboard-section {
+    margin: 20px 0;
+    padding: 15px;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.leaderboard-section h3 {
+    font-size: 1.1rem;
+    margin-bottom: 15px;
+    color: #00d4ff;
+}
+
+.leaderboard-container {
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+#leaderboard-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+#leaderboard-list li {
+    display: flex;
+    align-items: center;
+    padding: 8px 12px;
+    margin-bottom: 5px;
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.05);
+    font-size: 0.9rem;
+}
+
+#leaderboard-list li.loading,
+#leaderboard-list li.error,
+#leaderboard-list li.empty {
+    justify-content: center;
+    color: #888;
+    padding: 20px;
+}
+
+#leaderboard-list li .rank {
+    width: 30px;
+    font-weight: bold;
+    color: #888;
+}
+
+#leaderboard-list li .username {
+    flex: 1;
+    text-align: left;
+    margin-left: 10px;
+}
+
+#leaderboard-list li .score {
+    font-weight: bold;
+    color: #ffd700;
+}
+
+/* 金银铜牌样式 */
+#leaderboard-list li.gold {
+    background: linear-gradient(135deg, rgba(255, 215, 0, 0.2), rgba(255, 215, 0, 0.1));
+    border: 1px solid rgba(255, 215, 0, 0.3);
+}
+
+#leaderboard-list li.gold .rank {
+    color: #ffd700;
+}
+
+#leaderboard-list li.silver {
+    background: linear-gradient(135deg, rgba(192, 192, 192, 0.2), rgba(192, 192, 192, 0.1));
+    border: 1px solid rgba(192, 192, 192, 0.3);
+}
+
+#leaderboard-list li.silver .rank {
+    color: #c0c0c0;
+}
+
+#leaderboard-list li.bronze {
+    background: linear-gradient(135deg, rgba(205, 127, 50, 0.2), rgba(205, 127, 50, 0.1));
+    border: 1px solid rgba(205, 127, 50, 0.3);
+}
+
+#leaderboard-list li.bronze .rank {
+    color: #cd7f32;
+}
+
+/* 当前用户高亮 */
+#leaderboard-list li.current-user {
+    border: 2px solid #00d4ff;
+    box-shadow: 0 0 10px rgba(0, 212, 255, 0.3);
+}
+
+#leaderboard-list li.current-user .username {
+    color: #00d4ff;
+    font-weight: bold;
+}
+
 /* ========== 响应式设计 ========== */
 @media (max-width: 768px) {
     .game-area {
