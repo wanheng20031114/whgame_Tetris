@@ -382,29 +382,49 @@ function startGame(data) {
         socket.emit('multi_game_action', { type: 'board', value: board });
     };
 
-    // 下一个方块预览
-    const nextPieceCanvas = document.getElementById('next-piece');
-    const nextPieceCtx = nextPieceCanvas.getContext('2d');
-    appState.localGame.onNextPiece = (piece) => {
-        if (!piece) return;
-        nextPieceCtx.fillStyle = '#000';
-        nextPieceCtx.fillRect(0, 0, nextPieceCanvas.width, nextPieceCanvas.height);
+    // 下一个方块预览（5个）
+    const nextPieceCanvases = [
+        document.getElementById('next-piece-0'),
+        document.getElementById('next-piece-1'),
+        document.getElementById('next-piece-2'),
+        document.getElementById('next-piece-3'),
+        document.getElementById('next-piece-4')
+    ];
 
-        const blockSize = 25;
-        const offsetX = (nextPieceCanvas.width - piece[0].length * blockSize) / 2;
-        const offsetY = (nextPieceCanvas.height - piece.length * blockSize) / 2;
+    appState.localGame.onNextPieces = (pieces) => {
+        if (!pieces || pieces.length === 0) return;
 
-        piece.forEach((row, y) => {
-            row.forEach((value, x) => {
-                if (value !== 0 && CONSTANTS.COLORS) {
-                    nextPieceCtx.fillStyle = CONSTANTS.COLORS[value];
-                    nextPieceCtx.fillRect(
-                        offsetX + x * blockSize,
-                        offsetY + y * blockSize,
-                        blockSize - 1,
-                        blockSize - 1
-                    );
-                }
+        // 遍历每个预览画布
+        nextPieceCanvases.forEach((canvas, index) => {
+            if (!canvas || index >= pieces.length) return;
+
+            const ctx = canvas.getContext('2d');
+            const piece = pieces[index];
+
+            // 清空画布
+            ctx.fillStyle = '#000';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            if (!piece) return;
+
+            // 第一个方块较大，后面的较小
+            const blockSize = index === 0 ? 18 : 12;
+            const offsetX = (canvas.width - piece[0].length * blockSize) / 2;
+            const offsetY = (canvas.height - piece.length * blockSize) / 2;
+
+            // 绘制方块
+            piece.forEach((row, y) => {
+                row.forEach((value, x) => {
+                    if (value !== 0 && CONSTANTS.COLORS) {
+                        ctx.fillStyle = CONSTANTS.COLORS[value];
+                        ctx.fillRect(
+                            offsetX + x * blockSize,
+                            offsetY + y * blockSize,
+                            blockSize - 1,
+                            blockSize - 1
+                        );
+                    }
+                });
             });
         });
     };

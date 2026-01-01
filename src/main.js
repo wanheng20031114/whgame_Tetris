@@ -336,30 +336,50 @@ socket.on('game_ready', (data) => {
         socket.emit('game_action', { type: 'board', value: board });
     };
 
-    // 3. 下一个方块预览渲染
-    const nextPieceCanvas = document.getElementById('next-piece');
-    const nextPieceCtx = nextPieceCanvas.getContext('2d');
+    // 3. 下一个方块预览渲染（5个）
+    const nextPieceCanvases = [
+        document.getElementById('next-piece-0'),
+        document.getElementById('next-piece-1'),
+        document.getElementById('next-piece-2'),
+        document.getElementById('next-piece-3'),
+        document.getElementById('next-piece-4')
+    ];
 
-    appState.localGame.onNextPiece = (piece) => {
-        // 安全检查：防止数据未准备好时渲染报错
-        if (!piece || !nextPieceCanvas) return;
+    appState.localGame.onNextPieces = (pieces) => {
+        // 安全检查
+        if (!pieces || pieces.length === 0) return;
 
-        // 清空预览画布
-        nextPieceCtx.fillStyle = '#000';
-        nextPieceCtx.fillRect(0, 0, nextPieceCanvas.width, nextPieceCanvas.height);
+        // 遍历每个预览画布
+        nextPieceCanvases.forEach((canvas, index) => {
+            if (!canvas || index >= pieces.length) return;
 
-        // 居中计算
-        const blockSize = 25; // 预览界面方块稍小
-        const offsetX = (nextPieceCanvas.width - piece[0].length * blockSize) / 2;
-        const offsetY = (nextPieceCanvas.height - piece.length * blockSize) / 2;
+            const ctx = canvas.getContext('2d');
+            const piece = pieces[index];
 
-        // 绘制下一个方块
-        piece.forEach((row, y) => {
-            row.forEach((value, x) => {
-                if (value !== 0 && CONSTANTS && CONSTANTS.COLORS) {
-                    nextPieceCtx.fillStyle = CONSTANTS.COLORS[value];
-                    nextPieceCtx.fillRect(offsetX + x * blockSize, offsetY + y * blockSize, blockSize - 1, blockSize - 1);
-                }
+            // 清空画布
+            ctx.fillStyle = '#000';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            if (!piece) return;
+
+            // 第一个方块较大，后面的较小
+            const blockSize = index === 0 ? 18 : 12;
+            const offsetX = (canvas.width - piece[0].length * blockSize) / 2;
+            const offsetY = (canvas.height - piece.length * blockSize) / 2;
+
+            // 绘制方块
+            piece.forEach((row, y) => {
+                row.forEach((value, x) => {
+                    if (value !== 0 && CONSTANTS && CONSTANTS.COLORS) {
+                        ctx.fillStyle = CONSTANTS.COLORS[value];
+                        ctx.fillRect(
+                            offsetX + x * blockSize,
+                            offsetY + y * blockSize,
+                            blockSize - 1,
+                            blockSize - 1
+                        );
+                    }
+                });
             });
         });
     };
@@ -415,10 +435,10 @@ socket.on('game_action', (data) => {
 function resetGameView() {
     const localCanvas = document.getElementById('local-board');
     const remoteCanvas = document.getElementById('remote-board');
-    const nextPieceCanvas = document.getElementById('next-piece');
 
     // 辅助清空函数
     const clear = (cvs) => {
+        if (!cvs) return;
         const ctx = cvs.getContext('2d');
         ctx.fillStyle = '#000';
         ctx.fillRect(0, 0, cvs.width, cvs.height);
@@ -426,10 +446,10 @@ function resetGameView() {
 
     if (localCanvas) clear(localCanvas);
     if (remoteCanvas) clear(remoteCanvas);
-    if (nextPieceCanvas) {
-        const ctx = nextPieceCanvas.getContext('2d');
-        ctx.fillStyle = '#000';
-        ctx.fillRect(0, 0, nextPieceCanvas.width, nextPieceCanvas.height);
+
+    // 清空5个预览画布
+    for (let i = 0; i < 5; i++) {
+        clear(document.getElementById(`next-piece-${i}`));
     }
 
     // 重置分数显示

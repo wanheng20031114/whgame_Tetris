@@ -18,7 +18,14 @@ const appState = {
 // ========== DOM 元素引用 ==========
 const elements = {
     gameBoard: document.getElementById('game-board'),
-    nextPiece: document.getElementById('next-piece'),
+    // 5个预览方块画布
+    nextPieces: [
+        document.getElementById('next-piece-0'),
+        document.getElementById('next-piece-1'),
+        document.getElementById('next-piece-2'),
+        document.getElementById('next-piece-3'),
+        document.getElementById('next-piece-4')
+    ],
     scoreDisplay: document.getElementById('score-display'),
     speedDisplay: document.getElementById('speed-display'),
     timeDisplay: document.getElementById('time-display'),
@@ -108,32 +115,41 @@ function startGame() {
         updateSpeedDisplay();
     };
 
-    // 3. 下一个方块预览
-    const nextPieceCtx = elements.nextPiece.getContext('2d');
-    appState.game.onNextPiece = (piece) => {
-        if (!piece) return;
+    // 3. 下一个方块预览（显示5个）
+    appState.game.onNextPieces = (pieces) => {
+        if (!pieces || pieces.length === 0) return;
 
-        // 清空预览画布
-        nextPieceCtx.fillStyle = '#000';
-        nextPieceCtx.fillRect(0, 0, elements.nextPiece.width, elements.nextPiece.height);
+        // 遍历每个预览画布
+        elements.nextPieces.forEach((canvas, index) => {
+            if (!canvas || index >= pieces.length) return;
 
-        // 居中计算
-        const blockSize = 25;
-        const offsetX = (elements.nextPiece.width - piece[0].length * blockSize) / 2;
-        const offsetY = (elements.nextPiece.height - piece.length * blockSize) / 2;
+            const ctx = canvas.getContext('2d');
+            const piece = pieces[index];
 
-        // 绘制下一个方块
-        piece.forEach((row, y) => {
-            row.forEach((value, x) => {
-                if (value !== 0 && CONSTANTS && CONSTANTS.COLORS) {
-                    nextPieceCtx.fillStyle = CONSTANTS.COLORS[value];
-                    nextPieceCtx.fillRect(
-                        offsetX + x * blockSize,
-                        offsetY + y * blockSize,
-                        blockSize - 1,
-                        blockSize - 1
-                    );
-                }
+            // 清空画布
+            ctx.fillStyle = '#000';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            if (!piece) return;
+
+            // 第一个方块较大，后面的较小
+            const blockSize = index === 0 ? 18 : 12;
+            const offsetX = (canvas.width - piece[0].length * blockSize) / 2;
+            const offsetY = (canvas.height - piece.length * blockSize) / 2;
+
+            // 绘制方块
+            piece.forEach((row, y) => {
+                row.forEach((value, x) => {
+                    if (value !== 0 && CONSTANTS && CONSTANTS.COLORS) {
+                        ctx.fillStyle = CONSTANTS.COLORS[value];
+                        ctx.fillRect(
+                            offsetX + x * blockSize,
+                            offsetY + y * blockSize,
+                            blockSize - 1,
+                            blockSize - 1
+                        );
+                    }
+                });
             });
         });
     };
