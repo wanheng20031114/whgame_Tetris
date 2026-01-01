@@ -5,6 +5,7 @@
  */
 
 const { v4: uuidv4 } = require('uuid');
+const { broadcastSystemMessage, broadcastUserMessage } = require('./roomManager.js');
 
 // 多人房间存储
 // 房间结构: {
