@@ -1,6 +1,9 @@
 
 import io from 'socket.io-client';
 import { TetrisGame, CONSTANTS } from './game/tetris.js';
+import { cleanupGame, createGame, createScoreCallback } from './utils/gameManager.js';
+import { renderNextPieces, getNextPieceCanvases, renderLeaderboard as renderLeaderboardUtil } from './utils/renderUtils.js';
+import { createKeyboardHandler, createInputChecker } from './utils/keyboardHandler.js';
 
 // 初始化 Socket 连接，设置为不自动连接，等待登录成功手动连接
 const socket = io('/', {
@@ -47,6 +50,7 @@ const display = {
 // 模态框相关元素
 const modal = {
     container: document.getElementById('room-type-modal'),
+    modeSingleBtn: document.getElementById('mode-single-btn'), // 单人模式按钮
     mode2pBtn: document.getElementById('mode-2p-btn'),
     modeMultiBtn: document.getElementById('mode-multi-btn'),
     multiPlayerSelect: document.getElementById('multi-player-select'),
@@ -68,6 +72,11 @@ function switchView(viewName) {
     // 显示目标视图
     views[viewName].classList.remove('hidden');
     appState.currentView = viewName;
+
+    // 切换到大厅时加载排行榜
+    if (viewName === 'lobby') {
+        loadLobbyLeaderboard();
+    }
 }
 
 /**
@@ -140,6 +149,12 @@ modal.container.addEventListener('click', (e) => {
     if (e.target === modal.container) {
         modal.container.classList.add('hidden');
     }
+});
+
+// 选择单人模式 - 跳转到单人游戏页面
+modal.modeSingleBtn.addEventListener('click', () => {
+    modal.container.classList.add('hidden');
+    window.location.href = '/singleGame.html';
 });
 
 // 选择 2人对战模式
@@ -293,82 +308,33 @@ socket.on('game_ready', (data) => {
     const localCanvas = document.getElementById('local-board');
     const remoteCanvas = document.getElementById('remote-board');
 
-    // 清理旧的游戏实例 (防止重复绑定事件)
-    if (appState.localGame) appState.localGame.gameOver = true;
-    if (appState.remoteGame) appState.remoteGame.gameOver = true;
+    // 清理旧的游戏实例（使用公共模块）
+    cleanupGame(appState.localGame);
+    cleanupGame(appState.remoteGame);
 
-    // 初始化新游戏实例 (传入种子)
+    // 初始化新游戏实例
     const seed = data && data.seed ? data.seed : Math.floor(Math.random() * 100000);
-    appState.localGame = new TetrisGame(localCanvas, false, seed);
-    appState.remoteGame = new TetrisGame(remoteCanvas, true, seed); // 远程模式也传入相同的种子
 
-    // 播放背景音乐
-    appState.localGame.soundManager.playBGM();
+    // 创建本地游戏（使用公共模块）
+    const nextPieceCanvases = getNextPieceCanvases();
+    appState.localGame = createGame(localCanvas, seed, {
+        onScore: createScoreCallback(
+            (score) => document.getElementById('local-score').textContent = score,
+            (action) => socket.emit('game_action', action),
+            200
+        ),
+        onBoardUpdate: (board) => socket.emit('game_action', { type: 'board', value: board }),
+        onGameOver: () => {
+            socket.emit('game_action', { type: 'game_over' });
+            appState.localGame.soundManager.stopBGM();
+            showGameOver(false);
+        },
+        enableNextPiecesPreview: true,
+        playBGM: true
+    });
 
-    // 绑定本地游戏回调
-
-    // 1. 分数变动
-    let lastSentScore = 0; // 记录上次发送攻击时的分数
-    appState.localGame.onScore = (score) => {
-        document.getElementById('local-score').textContent = score;
-        socket.emit('game_action', { type: 'score', value: score });
-
-        // 攻击逻辑: 每 200 分攻击一次
-        const attackThreshold = 200;
-        // 计算跨越了几个 200 分的门槛
-        const attacks = Math.floor(score / attackThreshold) - Math.floor(lastSentScore / attackThreshold);
-
-        if (attacks > 0) {
-            socket.emit('game_action', { type: 'garbage', value: attacks });
-        }
-        lastSentScore = score;
-    };
-
-    // 2. 棋盘变动 (下落或消除后)
-    appState.localGame.onBoardUpdate = (board) => {
-        socket.emit('game_action', { type: 'board', value: board });
-    };
-
-    // 3. 下一个方块预览渲染
-    const nextPieceCanvas = document.getElementById('next-piece');
-    const nextPieceCtx = nextPieceCanvas.getContext('2d');
-
-    appState.localGame.onNextPiece = (piece) => {
-        // 安全检查：防止数据未准备好时渲染报错
-        if (!piece || !nextPieceCanvas) return;
-
-        // 清空预览画布
-        nextPieceCtx.fillStyle = '#000';
-        nextPieceCtx.fillRect(0, 0, nextPieceCanvas.width, nextPieceCanvas.height);
-
-        // 居中计算
-        const blockSize = 25; // 预览界面方块稍小
-        const offsetX = (nextPieceCanvas.width - piece[0].length * blockSize) / 2;
-        const offsetY = (nextPieceCanvas.height - piece.length * blockSize) / 2;
-
-        // 绘制下一个方块
-        piece.forEach((row, y) => {
-            row.forEach((value, x) => {
-                if (value !== 0 && CONSTANTS && CONSTANTS.COLORS) {
-                    nextPieceCtx.fillStyle = CONSTANTS.COLORS[value];
-                    nextPieceCtx.fillRect(offsetX + x * blockSize, offsetY + y * blockSize, blockSize - 1, blockSize - 1);
-                }
-            });
-        });
-    };
-
-    // 4. 行消除事件 (攻击判定已移至分数回调)
-    appState.localGame.onLinesCleared = (lines) => {
-        // 你可以在这里添加消除行的音效或特效
-    };
-
-    // 5. 游戏结束
-    appState.localGame.onGameOver = () => {
-        // 第一时间通知对手我输了
-        socket.emit('game_action', { type: 'game_over' });
-        appState.localGame.soundManager.stopBGM(); // 停止音乐
-        showGameOver(false); // 显示失败状态 (侧边栏)
-    };
+    // 创建远程游戏（用于渲染对手棋盘）
+    appState.remoteGame = new TetrisGame(remoteCanvas, true, seed);
 
     // 启动本地游戏循环
     appState.localGame.start();
@@ -408,10 +374,10 @@ socket.on('game_action', (data) => {
 function resetGameView() {
     const localCanvas = document.getElementById('local-board');
     const remoteCanvas = document.getElementById('remote-board');
-    const nextPieceCanvas = document.getElementById('next-piece');
 
     // 辅助清空函数
     const clear = (cvs) => {
+        if (!cvs) return;
         const ctx = cvs.getContext('2d');
         ctx.fillStyle = '#000';
         ctx.fillRect(0, 0, cvs.width, cvs.height);
@@ -419,10 +385,10 @@ function resetGameView() {
 
     if (localCanvas) clear(localCanvas);
     if (remoteCanvas) clear(remoteCanvas);
-    if (nextPieceCanvas) {
-        const ctx = nextPieceCanvas.getContext('2d');
-        ctx.fillStyle = '#000';
-        ctx.fillRect(0, 0, nextPieceCanvas.width, nextPieceCanvas.height);
+
+    // 清空5个预览画布
+    for (let i = 0; i < 5; i++) {
+        clear(document.getElementById(`next-piece-${i}`));
     }
 
     // 重置分数显示
@@ -553,3 +519,36 @@ document.addEventListener('keydown', (event) => {
 socket.on('room_error', (msg) => {
     alert(msg);
 });
+
+// ========== 大厅排行榜 ==========
+
+/**
+ * 加载大厅排行榜
+ */
+async function loadLobbyLeaderboard() {
+    const leaderboardEl = document.getElementById('lobby-leaderboard');
+    if (!leaderboardEl) return;
+
+    try {
+        const response = await fetch('/api/leaderboard');
+        const data = await response.json();
+
+        if (data.success && data.leaderboard) {
+            renderLobbyLeaderboard(data.leaderboard);
+        } else {
+            leaderboardEl.innerHTML = '<li class="error">加载失败</li>';
+        }
+    } catch (error) {
+        console.error('加载排行榜失败:', error);
+        leaderboardEl.innerHTML = '<li class="error">网络错误</li>';
+    }
+}
+
+/**
+ * 渲染大厅排行榜（使用公共模块）
+ */
+function renderLobbyLeaderboard(leaderboard) {
+    const leaderboardEl = document.getElementById('lobby-leaderboard');
+    const currentUsername = appState.user ? appState.user.username : null;
+    renderLeaderboardUtil(leaderboardEl, leaderboard, currentUsername, 10);
+}

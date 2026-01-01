@@ -283,6 +283,99 @@ button:hover {
     box-shadow: 0 0 5px #0DFF72;
 }
 
+/* ========== 大厅排行榜 ========== */
+.leaderboard-section {
+    margin-top: 20px;
+    padding-top: 15px;
+    border-top: 1px solid var(--glass-border);
+}
+
+.leaderboard-section h3 {
+    margin-top: 0;
+    margin-bottom: 10px;
+    font-size: 1rem;
+    color: #ffd700;
+    border-bottom: none;
+    padding-bottom: 0;
+}
+
+#lobby-leaderboard {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+#lobby-leaderboard li {
+    display: flex;
+    align-items: center;
+    padding: 6px 10px;
+    margin-bottom: 4px;
+    border-radius: 4px;
+    background: rgba(0, 0, 0, 0.2);
+    font-size: 0.85rem;
+}
+
+#lobby-leaderboard li.loading,
+#lobby-leaderboard li.error,
+#lobby-leaderboard li.empty {
+    justify-content: center;
+    color: #888;
+    padding: 15px;
+}
+
+#lobby-leaderboard li .rank {
+    width: 25px;
+    font-weight: bold;
+    color: #888;
+}
+
+#lobby-leaderboard li .username {
+    flex: 1;
+    margin-left: 8px;
+}
+
+#lobby-leaderboard li .score {
+    font-weight: bold;
+    color: #ffd700;
+}
+
+/* 金银铜样式 */
+#lobby-leaderboard li.gold {
+    background: linear-gradient(135deg, rgba(255, 215, 0, 0.15), rgba(255, 215, 0, 0.05));
+}
+
+#lobby-leaderboard li.gold .rank {
+    color: #ffd700;
+}
+
+#lobby-leaderboard li.silver {
+    background: linear-gradient(135deg, rgba(192, 192, 192, 0.15), rgba(192, 192, 192, 0.05));
+}
+
+#lobby-leaderboard li.silver .rank {
+    color: #c0c0c0;
+}
+
+#lobby-leaderboard li.bronze {
+    background: linear-gradient(135deg, rgba(205, 127, 50, 0.15), rgba(205, 127, 50, 0.05));
+}
+
+#lobby-leaderboard li.bronze .rank {
+    color: #cd7f32;
+}
+
+/* 当前用户高亮 */
+#lobby-leaderboard li.current-user {
+    border: 1px solid var(--neon-pink);
+}
+
+#lobby-leaderboard li.current-user .username {
+    color: var(--neon-pink);
+    font-weight: bold;
+}
+
 .room-item {
     background: rgba(0, 0, 0, 0.2);
     margin: 5px 0;
@@ -315,16 +408,39 @@ button:hover {
     gap: 20px;
 }
 
-/* 下一个方块预览容器 */
-.next-piece-container {
+/* 5个预览方块容器 */
+.next-pieces-container {
     display: flex;
     flex-direction: column;
     align-items: center;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 8px;
+    padding: 10px;
 }
 
-.next-piece-container h4 {
+.next-pieces-container h4 {
     margin: 0 0 10px 0;
     color: var(--neon-pink);
+    font-size: 0.9rem;
+}
+
+.next-pieces-list {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+}
+
+.next-pieces-list canvas {
+    background: #000;
+    border-radius: 4px;
+    border: 1px solid var(--glass-border);
+}
+
+/* 第一个预览方块更大更醒目 */
+.next-pieces-list canvas:first-child {
+    border: 2px solid var(--neon-pink);
+    box-shadow: 0 0 10px rgba(233, 69, 96, 0.3);
 }
 
 /* 画布样式 */
@@ -418,6 +534,11 @@ canvas {
 .mode-btn:hover {
     transform: translateY(-5px);
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+}
+
+.mode-btn.mode-single:hover {
+    border-color: #ffd700;
+    box-shadow: 0 0 20px rgba(255, 215, 0, 0.5);
 }
 
 .mode-btn.mode-2p:hover {

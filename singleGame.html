@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>whgame 单人俄罗斯方块</title>
+    <link rel="stylesheet" href="/src/singleStyle.css">
+    <link rel="icon" type="image/x-icon" href="/favicon.ico?v=2" />
+</head>
+
+<body>
+    <div id="app">
+        <!-- 游戏视图 -->
+        <div id="game-view" class="view">
+            <header>
+                <h1>🎮 单人模式</h1>
+                <button id="back-btn" class="back-btn">← 返回大厅</button>
+            </header>
+
+            <div class="game-area">
+                <div class="game-container">
+                    <!-- 玩家游戏区域 -->
+                    <div class="player-board">
+                        <div class="board-wrapper">
+                            <canvas id="game-board" width="300" height="600"></canvas>
+                            <div class="side-panel">
+                                <div class="next-pieces-container">
+                                    <h4>预览</h4>
+                                    <div class="next-pieces-list">
+                                        <canvas id="next-piece-0" width="80" height="80"></canvas>
+                                        <canvas id="next-piece-1" width="60" height="60"></canvas>
+                                        <canvas id="next-piece-2" width="60" height="60"></canvas>
+                                        <canvas id="next-piece-3" width="60" height="60"></canvas>
+                                        <canvas id="next-piece-4" width="60" height="60"></canvas>
+                                    </div>
+                                </div>
+                                <div class="stats-container">
+                                    <div class="stat-item">
+                                        <span class="stat-label">分数</span>
+                                        <span class="stat-value" id="score-display">0</span>
+                                    </div>
+                                    <div class="stat-item">
+                                        <span class="stat-label">速度</span>
+                                        <span class="stat-value" id="speed-display">500ms</span>
+                                    </div>
+                                    <div class="stat-item">
+                                        <span class="stat-label">时间</span>
+                                        <span class="stat-value" id="time-display">00:00</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 控制说明 -->
+                <div class="controls-info">
+                    <h4>操作指南</h4>
+                    <div class="control-row"><span class="key">←/A</span> 左移</div>
+                    <div class="control-row"><span class="key">→/D</span> 右移</div>
+                    <div class="control-row"><span class="key">↑/W</span> 旋转</div>
+                    <div class="control-row"><span class="key">↓/S</span> 软降</div>
+                    <div class="control-row"><span class="key">空格</span> 硬降</div>
+                </div>
+            </div>
+
+            <!-- 游戏结束覆盖层 -->
+            <div id="game-over-overlay" class="overlay hidden">
+                <div class="overlay-content">
+                    <h2>游戏结束</h2>
+                    <div class="final-score">
+                        <span>最终分数</span>
+                        <span id="final-score-value">0</span>
+                    </div>
+                    <div id="new-high-score" class="new-high-score hidden">🏆 新纪录！</div>
+
+                    <!-- 排行榜区域 -->
+                    <div class="leaderboard-section">
+                        <h3>🏅 排行榜</h3>
+                        <div class="leaderboard-container">
+                            <ol id="leaderboard-list">
+                                <li class="loading">加载中...</li>
+                            </ol>
+                        </div>
+                    </div>
+
+                    <div class="overlay-buttons">
+                        <button id="restart-btn" class="btn-primary">🔄 再玩一次</button>
+                        <button id="back-to-lobby-btn" class="btn-secondary">🏠 返回大厅</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script type="module" src="/src/mainSingle.js"></script>
+</body>
+
+</html>

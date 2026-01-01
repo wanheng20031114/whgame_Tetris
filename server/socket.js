@@ -1,14 +1,9 @@
 
 const { v4: uuidv4 } = require('uuid');
+const { RoomManager, broadcastSystemMessage, broadcastUserMessage } = require('./roomManager.js');
 
-// 内存中的房间存储
-// 房间结构示例: 
-// { 
-//   id: string, 
-//   players: { [socketId]: { userId, username } }, 
-//   status: 'waiting' | 'playing' 
-// }
-const rooms = new Map();
+// 房间管理器实例
+const roomManager = new RoomManager();
 
 // 在线用户列表
 // Key: socket.id
@@ -50,7 +45,7 @@ module.exports = (io, db) => {
         broadcastUserList(io);
 
         // 向新连接的用户发送当前的房间列表
-        socket.emit('room_list', Array.from(rooms.values()));
+        socket.emit('room_list', roomManager.getAllRooms());
 
         /**
          * 创建房间事件
@@ -64,8 +59,8 @@ module.exports = (io, db) => {
                 status: 'waiting'
             };
 
-            // 存储房间
-            rooms.set(roomId, room);
+            // 存储房间（使用 RoomManager）
+            roomManager.createRoom(roomId, room);
 
             // 离开大厅频道，加入新房间频道
             socket.leave('lobby');
@@ -74,7 +69,7 @@ module.exports = (io, db) => {
             // 通知客户端房间创建成功，跳转游戏视图
             socket.emit('room_created', roomId);
             // 广播更新后的大厅房间列表
-            io.to('lobby').emit('room_list', Array.from(rooms.values()));
+            io.to('lobby').emit('room_list', roomManager.getAllRooms());
         });
 
         /**
@@ -82,13 +77,13 @@ module.exports = (io, db) => {
          * @param {string} roomId - 目标房间 ID
          */
         socket.on('join_room', (roomId) => {
-            const room = rooms.get(roomId);
+            const room = roomManager.getRoom(roomId);
             if (!room) {
                 socket.emit('room_error', 'Room not found');
                 return;
             }
 
-            if (Object.keys(room.players).length >= 2) {
+            if (roomManager.getPlayerCount(roomId) >= 2) {
                 socket.emit('room_error', 'Room is full');
                 return;
             }
@@ -98,8 +93,8 @@ module.exports = (io, db) => {
                 return;
             }
 
-            // 添加玩家到房间数据结构
-            room.players[socket.id] = { userId, username };
+            // 添加玩家到房间（使用 RoomManager）
+            roomManager.addPlayer(roomId, socket.id, { userId, username });
 
             // socket 操作
             socket.leave('lobby');
@@ -112,14 +107,13 @@ module.exports = (io, db) => {
             io.to(roomId).emit('player_joined', { userId, username });
 
             // 如果满员（2人），触发游戏准备/开始
-            if (Object.keys(room.players).length === 2) {
-                // 生成一个随机种子，确保双方方块序列一致
+            if (roomManager.getPlayerCount(roomId) === 2) {
                 const seed = Math.floor(Math.random() * 2147483647);
                 io.to(roomId).emit('game_ready', { seed });
             }
 
-            // 更新大厅列表（人数变化）
-            io.to('lobby').emit('room_list', Array.from(rooms.values()));
+            // 更新大厅列表
+            io.to('lobby').emit('room_list', roomManager.getAllRooms());
         });
 
         /**
@@ -148,65 +142,52 @@ module.exports = (io, db) => {
          * @param {Object} data - 游戏数据 { type: 'board'|'score'|'garbage'|'game_over', value: ... }
          */
         socket.on('game_action', (data) => {
-            // 寻找包含当前 socket 的房间
-            for (const [roomId, room] of rooms) {
-                if (room.players[socket.id]) {
-                    // 将数据广播给房间内的其他人（排除自己）
-                    socket.to(roomId).emit('game_action', data);
+            // 寻找包含当前 socket 的房间（使用 RoomManager）
+            const result = roomManager.findPlayerRoom(socket.id);
+            if (!result) return;
 
-                    // 获胜积分逻辑：
-                    // 如果收到 'game_over'，无论发送者是谁，通常意味着发送者输了（触顶）。
-                    // 因此，房间里的另一个玩家是赢家。
-                    if (data.type === 'game_over') {
-                        // 找到 ID 不等于当前发送者 ID 的玩家作为赢家
-                        const winnerId = Object.keys(room.players).find(id => id !== socket.id);
-                        if (winnerId) {
-                            const winnerUser = room.players[winnerId];
+            const { roomId, room } = result;
 
-                            // 1. 更新数据库总分
-                            try {
-                                const stmt = db.prepare('UPDATE users SET score = score + 100 WHERE id = ?');
-                                stmt.run(winnerUser.userId);
-                                console.log(`Updated score for winner: ${winnerUser.username}`);
-                            } catch (err) {
-                                console.error('Score update failed:', err);
-                            }
+            // 将数据广播给房间内的其他人（排除自己）
+            socket.to(roomId).emit('game_action', data);
 
-                            // 2. 更新房间内战绩 (Session Score)
-                            if (!room.scores) room.scores = {};
-                            if (!room.scores[winnerId]) room.scores[winnerId] = 0;
-                            room.scores[winnerId]++;
+            // 获胜积分逻辑
+            if (data.type === 'game_over') {
+                const winnerId = Object.keys(room.players).find(id => id !== socket.id);
+                if (winnerId) {
+                    const winnerUser = room.players[winnerId];
 
-                            // 格式化比分文本
-                            const p1Id = Object.keys(room.players)[0];
-                            const p2Id = Object.keys(room.players)[1];
-                            const scoreText = `${room.players[p1Id].username}: ${room.scores[p1Id] || 0}  vs  ${room.players[p2Id].username}: ${room.scores[p2Id] || 0}`;
-
-                            // 广播系统消息到聊天室
-                            io.to(roomId).emit('chat_message', {
-                                type: 'system',
-                                text: `🏆 ${winnerUser.username} 获胜! 当前战绩: [ ${scoreText} ]`
-                            });
-                        }
+                    // 更新数据库总分
+                    try {
+                        const stmt = db.prepare('UPDATE users SET score = score + 100 WHERE id = ?');
+                        stmt.run(winnerUser.userId);
+                        console.log(`Updated score for winner: ${winnerUser.username}`);
+                    } catch (err) {
+                        console.error('Score update failed:', err);
                     }
-                    break;
+
+                    // 更新房间内战绩
+                    if (!room.scores) room.scores = {};
+                    if (!room.scores[winnerId]) room.scores[winnerId] = 0;
+                    room.scores[winnerId]++;
+
+                    // 格式化比分文本
+                    const p1Id = Object.keys(room.players)[0];
+                    const p2Id = Object.keys(room.players)[1];
+                    const scoreText = `${room.players[p1Id].username}: ${room.scores[p1Id] || 0}  vs  ${room.players[p2Id].username}: ${room.scores[p2Id] || 0}`;
+
+                    // 广播系统消息（使用公共函数）
+                    broadcastSystemMessage(io, roomId, `🏆 ${winnerUser.username} 获胜! 当前战绩: [ ${scoreText} ]`);
                 }
             }
         });
 
-        // 聊天消息事件
+        // 聊天消息事件（使用公共函数）
         socket.on('chat_message', (text) => {
             const { username } = socket.handshake.auth;
-            for (const [roomId, room] of rooms) {
-                if (room.players[socket.id]) {
-                    // 广播给房间所有人 (包括自己，这样前端处理简单统一)
-                    io.to(roomId).emit('chat_message', {
-                        type: 'user',
-                        username: username,
-                        text: text
-                    });
-                    break;
-                }
+            const result = roomManager.findPlayerRoom(socket.id);
+            if (result) {
+                broadcastUserMessage(io, result.roomId, username, text);
             }
         });
 
@@ -215,56 +196,48 @@ module.exports = (io, db) => {
          * 玩家请求重新开始游戏
          */
         socket.on('game_reset', () => {
-            for (const [roomId, room] of rooms) {
-                if (room.players[socket.id]) {
-                    room.status = 'playing'; // 重置状态
-                    // 通知双方重置
-                    io.to(roomId).emit('game_reset');
-                    // 立即开始新的一局
-                    const seed = Math.floor(Math.random() * 2147483647);
-                    io.to(roomId).emit('game_ready', { seed });
+            const result = roomManager.findPlayerRoom(socket.id);
+            if (!result) return;
 
-                    // 可选：发送系统消息
-                    io.to(roomId).emit('chat_message', { type: 'system', text: '🔄 游戏已重置，新的一局开始！' });
-                    break;
-                }
-            }
+            const { roomId, room } = result;
+            room.status = 'playing';
+            io.to(roomId).emit('game_reset');
+            const seed = Math.floor(Math.random() * 2147483647);
+            io.to(roomId).emit('game_ready', { seed });
+            broadcastSystemMessage(io, roomId, '🔄 游戏已重置，新的一局开始！');
         });
     });
 };
 
 /**
- * 处理用户离开逻辑（封装复用）
+ * 处理用户离开逻辑（使用 RoomManager）
  * @param {Socket} socket 
  * @param {Server} io 
  */
 function handleLeave(socket, io) {
-    for (const [roomId, room] of rooms) {
-        if (room.players[socket.id]) {
-            const username = room.players[socket.id].username;
-            // 从房间移除玩家
-            delete room.players[socket.id];
-            socket.leave(roomId);
-            socket.join('lobby'); // 重新加入大厅
+    const result = roomManager.findPlayerRoom(socket.id);
+    if (!result) return;
 
-            // 如果房间空了，删除房间
-            if (Object.keys(room.players).length === 0) {
-                rooms.delete(roomId);
-            } else {
-                // 如果还有人，房间状态重置为等待中，允许新人加入
-                room.status = 'waiting';
-                // 可选：重置当前战绩，因为是新对局
-                room.scores = {};
+    const { roomId, room } = result;
+    const username = room.players[socket.id].username;
 
-                // 通知剩余玩家对方离开了
-                io.to(roomId).emit('player_left');
-                // 发送离开消息给剩余玩家
-                io.to(roomId).emit('chat_message', { type: 'system', text: `🚪 ${username} 离开了房间` });
-            }
+    // 从房间移除玩家
+    roomManager.removePlayer(roomId, socket.id);
+    socket.leave(roomId);
+    socket.join('lobby');
 
-            // 广播新的房间列表状态
-            io.to('lobby').emit('room_list', Array.from(rooms.values()));
-            break;
-        }
+    // 如果房间空了，删除房间
+    if (roomManager.isRoomEmpty(roomId)) {
+        roomManager.deleteRoom(roomId);
+    } else {
+        // 如果还有人，房间状态重置为等待中
+        room.status = 'waiting';
+        room.scores = {};
+
+        io.to(roomId).emit('player_left');
+        broadcastSystemMessage(io, roomId, `🚪 ${username} 离开了房间`);
     }
+
+    // 广播新的房间列表状态
+    io.to('lobby').emit('room_list', roomManager.getAllRooms());
 }

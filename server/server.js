@@ -70,6 +70,61 @@ app.post('/api/login', (req, res) => {
     }
 });
 
+/**
+ * 保存单人模式分数
+ * POST /api/score
+ * 接收: { userId, score }
+ */
+app.post('/api/score', (req, res) => {
+    const { userId, score } = req.body;
+
+    if (!userId || score === undefined) {
+        return res.status(400).json({ error: 'Missing userId or score' });
+    }
+
+    try {
+        // 获取用户当前最高分
+        const currentUser = db.prepare('SELECT score FROM users WHERE id = ?').get(userId);
+
+        if (!currentUser) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+
+        // 如果新分数更高，更新最高分
+        if (score > (currentUser.score || 0)) {
+            db.prepare('UPDATE users SET score = ? WHERE id = ?').run(score, userId);
+            res.json({ success: true, newHighScore: true, score });
+        } else {
+            res.json({ success: true, newHighScore: false, highScore: currentUser.score });
+        }
+    } catch (err) {
+        console.error('保存分数错误:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+/**
+ * 获取排行榜
+ * GET /api/leaderboard
+ * 返回前20名玩家
+ */
+app.get('/api/leaderboard', (req, res) => {
+    try {
+        const leaderboard = db.prepare(`
+            SELECT username, score 
+            FROM users 
+            WHERE score > 0 
+            ORDER BY score DESC 
+            LIMIT 20
+        `).all();
+
+        res.json({ success: true, leaderboard });
+    } catch (err) {
+        console.error('获取排行榜错误:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
 // --- Socket.IO 逻辑集成 ---
 const socketHandler = require('./socket');
 // 将 socket 处理逻辑分拆到 socket.js 中，并传入 io 和 db 实例

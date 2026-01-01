@@ -113,7 +113,7 @@ export class TetrisGame {
 
         // 当前控制的方块
         this.piece = null;
-        this.nextPiece = null; // 下一个方块预览
+        this.nextPieces = []; // 下一个方块预览队列（5个）
         this.pos = { x: 0, y: 0 }; // 方块坐标
 
         // 时间控制（用于下落动画）
@@ -125,7 +125,7 @@ export class TetrisGame {
         this.onGameOver = null;
         this.onScore = null;
         this.onBoardUpdate = null; // 用于同步棋盘状态到服务器
-        this.onNextPiece = null;   // 用于通知UI更新下一个方块预览
+        this.onNextPieces = null;  // 用于通知UI更新下一个方块预览（改为复数）
         this.onLinesCleared = null; // 消除行回调
 
         // 7-Bag 系统：保证每7个方块中各种类型各出现一次
@@ -184,13 +184,18 @@ export class TetrisGame {
         // 重置 7-Bag 系统
         this.bag = [];
 
-        // 初始化方块
-        this.nextPiece = this.randomPiece();
-        this.piece = this.randomPiece();
+        // 初始化方块预览队列（5个）
+        this.nextPieces = [];
+        for (let i = 0; i < 5; i++) {
+            this.nextPieces.push(this.randomPiece());
+        }
+        // 从队列中取出第一个作为当前方块
+        this.piece = this.nextPieces.shift();
+        this.nextPieces.push(this.randomPiece()); // 补充一个新的
         this.pos = { x: 3, y: 0 }; // 初始位置居中
 
         if (this.onScore) this.onScore(0);
-        if (this.onNextPiece) this.onNextPiece(this.nextPiece);
+        if (this.onNextPieces) this.onNextPieces(this.nextPieces);
     }
 
     /**
@@ -247,12 +252,12 @@ export class TetrisGame {
             this.soundManager.playLandSound(); // 播放落地音效
             this.arenaSweep(); // 检测消除行
 
-            // 生成新方块
-            this.piece = this.nextPiece;
-            this.nextPiece = this.randomPiece();
+            // 生成新方块（从队列中取出）
+            this.piece = this.nextPieces.shift();
+            this.nextPieces.push(this.randomPiece()); // 补充新方块到队列末尾
 
             // 触发下一个方块的UI更新回调
-            if (this.onNextPiece) this.onNextPiece(this.nextPiece);
+            if (this.onNextPieces) this.onNextPieces(this.nextPieces);
 
             // 重置新方块位置
             this.pos = { x: 3, y: 0 };
