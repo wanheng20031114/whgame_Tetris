@@ -1,6 +1,9 @@
 
 import io from 'socket.io-client';
 import { TetrisGame, CONSTANTS } from './game/tetris.js';
+import { cleanupGame, createGame, createScoreCallback } from './utils/gameManager.js';
+import { renderNextPieces, getNextPieceCanvases, renderLeaderboard as renderLeaderboardUtil } from './utils/renderUtils.js';
+import { createKeyboardHandler, createInputChecker } from './utils/keyboardHandler.js';
 
 // 初始化 Socket 连接，设置为不自动连接，等待登录成功手动连接
 const socket = io('/', {
@@ -305,102 +308,33 @@ socket.on('game_ready', (data) => {
     const localCanvas = document.getElementById('local-board');
     const remoteCanvas = document.getElementById('remote-board');
 
-    // 清理旧的游戏实例 (防止重复绑定事件)
-    if (appState.localGame) appState.localGame.gameOver = true;
-    if (appState.remoteGame) appState.remoteGame.gameOver = true;
+    // 清理旧的游戏实例（使用公共模块）
+    cleanupGame(appState.localGame);
+    cleanupGame(appState.remoteGame);
 
-    // 初始化新游戏实例 (传入种子)
+    // 初始化新游戏实例
     const seed = data && data.seed ? data.seed : Math.floor(Math.random() * 100000);
-    appState.localGame = new TetrisGame(localCanvas, false, seed);
-    appState.remoteGame = new TetrisGame(remoteCanvas, true, seed); // 远程模式也传入相同的种子
 
-    // 播放背景音乐
-    appState.localGame.soundManager.playBGM();
+    // 创建本地游戏（使用公共模块）
+    const nextPieceCanvases = getNextPieceCanvases();
+    appState.localGame = createGame(localCanvas, seed, {
+        onScore: createScoreCallback(
+            (score) => document.getElementById('local-score').textContent = score,
+            (action) => socket.emit('game_action', action),
+            200
+        ),
+        onBoardUpdate: (board) => socket.emit('game_action', { type: 'board', value: board }),
+        onGameOver: () => {
+            socket.emit('game_action', { type: 'game_over' });
+            appState.localGame.soundManager.stopBGM();
+            showGameOver(false);
+        },
+        enableNextPiecesPreview: true,
+        playBGM: true
+    });
 
-    // 绑定本地游戏回调
-
-    // 1. 分数变动
-    let lastSentScore = 0; // 记录上次发送攻击时的分数
-    appState.localGame.onScore = (score) => {
-        document.getElementById('local-score').textContent = score;
-        socket.emit('game_action', { type: 'score', value: score });
-
-        // 攻击逻辑: 每 200 分攻击一次
-        const attackThreshold = 200;
-        // 计算跨越了几个 200 分的门槛
-        const attacks = Math.floor(score / attackThreshold) - Math.floor(lastSentScore / attackThreshold);
-
-        if (attacks > 0) {
-            socket.emit('game_action', { type: 'garbage', value: attacks });
-        }
-        lastSentScore = score;
-    };
-
-    // 2. 棋盘变动 (下落或消除后)
-    appState.localGame.onBoardUpdate = (board) => {
-        socket.emit('game_action', { type: 'board', value: board });
-    };
-
-    // 3. 下一个方块预览渲染（5个）
-    const nextPieceCanvases = [
-        document.getElementById('next-piece-0'),
-        document.getElementById('next-piece-1'),
-        document.getElementById('next-piece-2'),
-        document.getElementById('next-piece-3'),
-        document.getElementById('next-piece-4')
-    ];
-
-    appState.localGame.onNextPieces = (pieces) => {
-        // 安全检查
-        if (!pieces || pieces.length === 0) return;
-
-        // 遍历每个预览画布
-        nextPieceCanvases.forEach((canvas, index) => {
-            if (!canvas || index >= pieces.length) return;
-
-            const ctx = canvas.getContext('2d');
-            const piece = pieces[index];
-
-            // 清空画布
-            ctx.fillStyle = '#000';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-            if (!piece) return;
-
-            // 第一个方块较大，后面的较小
-            const blockSize = index === 0 ? 18 : 12;
-            const offsetX = (canvas.width - piece[0].length * blockSize) / 2;
-            const offsetY = (canvas.height - piece.length * blockSize) / 2;
-
-            // 绘制方块
-            piece.forEach((row, y) => {
-                row.forEach((value, x) => {
-                    if (value !== 0 && CONSTANTS && CONSTANTS.COLORS) {
-                        ctx.fillStyle = CONSTANTS.COLORS[value];
-                        ctx.fillRect(
-                            offsetX + x * blockSize,
-                            offsetY + y * blockSize,
-                            blockSize - 1,
-                            blockSize - 1
-                        );
-                    }
-                });
-            });
-        });
-    };
-
-    // 4. 行消除事件 (攻击判定已移至分数回调)
-    appState.localGame.onLinesCleared = (lines) => {
-        // 你可以在这里添加消除行的音效或特效
-    };
-
-    // 5. 游戏结束
-    appState.localGame.onGameOver = () => {
-        // 第一时间通知对手我输了
-        socket.emit('game_action', { type: 'game_over' });
-        appState.localGame.soundManager.stopBGM(); // 停止音乐
-        showGameOver(false); // 显示失败状态 (侧边栏)
-    };
+    // 创建远程游戏（用于渲染对手棋盘）
+    appState.remoteGame = new TetrisGame(remoteCanvas, true, seed);
 
     // 启动本地游戏循环
     appState.localGame.start();
@@ -611,31 +545,10 @@ async function loadLobbyLeaderboard() {
 }
 
 /**
- * 渲染大厅排行榜
+ * 渲染大厅排行榜（使用公共模块）
  */
 function renderLobbyLeaderboard(leaderboard) {
     const leaderboardEl = document.getElementById('lobby-leaderboard');
-    if (!leaderboardEl) return;
-
-    if (leaderboard.length === 0) {
-        leaderboardEl.innerHTML = '<li class="empty">暂无记录</li>';
-        return;
-    }
-
     const currentUsername = appState.user ? appState.user.username : null;
-
-    leaderboardEl.innerHTML = leaderboard.slice(0, 10).map((entry, index) => {
-        const rank = index + 1;
-        const isCurrentUser = entry.username === currentUsername;
-        const rankClass = rank === 1 ? 'gold' : rank === 2 ? 'silver' : rank === 3 ? 'bronze' : '';
-        const userClass = isCurrentUser ? 'current-user' : '';
-
-        return `
-            <li class="${rankClass} ${userClass}">
-                <span class="rank">${rank}</span>
-                <span class="username">${entry.username}</span>
-                <span class="score">${entry.score}</span>
-            </li>
-        `;
-    }).join('');
+    renderLeaderboardUtil(leaderboardEl, leaderboard, currentUsername, 10);
 }

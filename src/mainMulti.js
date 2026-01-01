@@ -6,6 +6,8 @@
 
 import io from 'socket.io-client';
 import { TetrisGame, CONSTANTS } from './game/tetris.js';
+import { cleanupGame, createGame, createScoreCallback } from './utils/gameManager.js';
+import { createKeyboardHandler, createInputChecker } from './utils/keyboardHandler.js';
 
 // 初始化 Socket 连接
 const socket = io('/', {
@@ -351,88 +353,24 @@ function startGame(data) {
 
     updateAliveCount(data.players.filter(p => p.alive).length);
 
-    // 初始化本地游戏
+    // 初始化本地游戏（使用公共模块）
     const localCanvas = document.getElementById('local-board');
-    if (appState.localGame) {
-        appState.localGame.gameOver = true;
-        if (appState.localGame.soundManager) {
+    cleanupGame(appState.localGame);
+
+    appState.localGame = createGame(localCanvas, data.seed, {
+        onScore: createScoreCallback(
+            (score) => display.localScore.textContent = score,
+            (action) => socket.emit('multi_game_action', action),
+            200
+        ),
+        onBoardUpdate: (board) => socket.emit('multi_game_action', { type: 'board', value: board }),
+        onGameOver: () => {
+            socket.emit('multi_game_action', { type: 'game_over' });
             appState.localGame.soundManager.stopBGM();
-        }
-    }
-
-    appState.localGame = new TetrisGame(localCanvas, false, data.seed);
-    appState.localGame.soundManager.playBGM();
-
-    // 绑定回调
-    let lastSentScore = 0;
-    appState.localGame.onScore = (score) => {
-        display.localScore.textContent = score;
-        socket.emit('multi_game_action', { type: 'score', value: score });
-
-        // 攻击逻辑
-        const attackThreshold = 200;
-        const attacks = Math.floor(score / attackThreshold) - Math.floor(lastSentScore / attackThreshold);
-        if (attacks > 0) {
-            socket.emit('multi_game_action', { type: 'garbage', value: attacks });
-        }
-        lastSentScore = score;
-    };
-
-    appState.localGame.onBoardUpdate = (board) => {
-        socket.emit('multi_game_action', { type: 'board', value: board });
-    };
-
-    // 下一个方块预览（5个）
-    const nextPieceCanvases = [
-        document.getElementById('next-piece-0'),
-        document.getElementById('next-piece-1'),
-        document.getElementById('next-piece-2'),
-        document.getElementById('next-piece-3'),
-        document.getElementById('next-piece-4')
-    ];
-
-    appState.localGame.onNextPieces = (pieces) => {
-        if (!pieces || pieces.length === 0) return;
-
-        // 遍历每个预览画布
-        nextPieceCanvases.forEach((canvas, index) => {
-            if (!canvas || index >= pieces.length) return;
-
-            const ctx = canvas.getContext('2d');
-            const piece = pieces[index];
-
-            // 清空画布
-            ctx.fillStyle = '#000';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-            if (!piece) return;
-
-            // 第一个方块较大，后面的较小
-            const blockSize = index === 0 ? 18 : 12;
-            const offsetX = (canvas.width - piece[0].length * blockSize) / 2;
-            const offsetY = (canvas.height - piece.length * blockSize) / 2;
-
-            // 绘制方块
-            piece.forEach((row, y) => {
-                row.forEach((value, x) => {
-                    if (value !== 0 && CONSTANTS.COLORS) {
-                        ctx.fillStyle = CONSTANTS.COLORS[value];
-                        ctx.fillRect(
-                            offsetX + x * blockSize,
-                            offsetY + y * blockSize,
-                            blockSize - 1,
-                            blockSize - 1
-                        );
-                    }
-                });
-            });
-        });
-    };
-
-    appState.localGame.onGameOver = () => {
-        socket.emit('multi_game_action', { type: 'game_over' });
-        appState.localGame.soundManager.stopBGM();
-    };
+        },
+        enableNextPiecesPreview: true,
+        playBGM: true
+    });
 
     appState.localGame.start();
 }

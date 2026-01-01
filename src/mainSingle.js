@@ -6,6 +6,9 @@
  */
 
 import { TetrisGame, CONSTANTS } from './game/tetris.js';
+import { cleanupGame, createGame } from './utils/gameManager.js';
+import { renderLeaderboard as renderLeaderboardUtil } from './utils/renderUtils.js';
+import { createKeyboardHandler } from './utils/keyboardHandler.js';
 
 // ========== 全局状态 ==========
 const appState = {
@@ -79,8 +82,9 @@ function setupEventListeners() {
         window.location.href = '/';
     });
 
-    // 键盘控制
-    document.addEventListener('keydown', handleKeydown);
+    // 键盘控制（使用公共模块）
+    const keyHandler = createKeyboardHandler(() => appState.game);
+    document.addEventListener('keydown', keyHandler);
 }
 
 // ========== 游戏控制 ==========
@@ -91,77 +95,31 @@ function setupEventListeners() {
 function startGame() {
     console.log('开始新游戏');
 
-    // 清理旧游戏
-    if (appState.game) {
-        appState.game.gameOver = true;
-        appState.game.soundManager.stopBGM();
-    }
+    // 清理旧游戏（使用公共模块）
+    cleanupGame(appState.game);
     stopTimer();
 
     // 生成随机种子
     const seed = Math.floor(Math.random() * 1000000);
 
-    // 创建新游戏实例
-    appState.game = new TetrisGame(elements.gameBoard, false, seed);
-
-    // 绑定回调
-    // 1. 分数变动
-    appState.game.onScore = (score) => {
-        elements.scoreDisplay.textContent = score;
-    };
-
-    // 2. 棋盘更新 (用于更新速度显示)
-    appState.game.onBoardUpdate = () => {
-        updateSpeedDisplay();
-    };
-
-    // 3. 下一个方块预览（显示5个）
-    appState.game.onNextPieces = (pieces) => {
-        if (!pieces || pieces.length === 0) return;
-
-        // 遍历每个预览画布
-        elements.nextPieces.forEach((canvas, index) => {
-            if (!canvas || index >= pieces.length) return;
-
-            const ctx = canvas.getContext('2d');
-            const piece = pieces[index];
-
-            // 清空画布
-            ctx.fillStyle = '#000';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-            if (!piece) return;
-
-            // 第一个方块较大，后面的较小
-            const blockSize = index === 0 ? 18 : 12;
-            const offsetX = (canvas.width - piece[0].length * blockSize) / 2;
-            const offsetY = (canvas.height - piece.length * blockSize) / 2;
-
-            // 绘制方块
-            piece.forEach((row, y) => {
-                row.forEach((value, x) => {
-                    if (value !== 0 && CONSTANTS && CONSTANTS.COLORS) {
-                        ctx.fillStyle = CONSTANTS.COLORS[value];
-                        ctx.fillRect(
-                            offsetX + x * blockSize,
-                            offsetY + y * blockSize,
-                            blockSize - 1,
-                            blockSize - 1
-                        );
-                    }
-                });
-            });
-        });
-    };
-
-    // 4. 游戏结束
-    appState.game.onGameOver = () => {
-        console.log('游戏结束，分数:', appState.game.score);
-        appState.game.soundManager.stopBGM();
-        stopTimer();
-        showGameOver();
-        saveScore(appState.game.score);
-    };
+    // 创建新游戏实例（使用公共模块）
+    appState.game = createGame(elements.gameBoard, seed, {
+        onScore: (score) => {
+            elements.scoreDisplay.textContent = score;
+        },
+        onBoardUpdate: () => {
+            updateSpeedDisplay();
+        },
+        onGameOver: () => {
+            console.log('游戏结束，分数:', appState.game.score);
+            appState.game.soundManager.stopBGM();
+            stopTimer();
+            showGameOver();
+            saveScore(appState.game.score);
+        },
+        enableNextPiecesPreview: true,
+        playBGM: true
+    });
 
     // 重置显示
     elements.scoreDisplay.textContent = '0';
@@ -173,9 +131,6 @@ function startGame() {
 
     // 启动计时器
     startTimer();
-
-    // 播放背景音乐
-    appState.game.soundManager.playBGM();
 
     // 启动游戏
     appState.game.start();
@@ -289,59 +244,12 @@ async function loadLeaderboard() {
 }
 
 /**
- * 渲染排行榜
+ * 渲染排行榜（使用公共模块）
  * @param {Array} leaderboard - 排行榜数据
  */
 function renderLeaderboard(leaderboard) {
-    if (leaderboard.length === 0) {
-        elements.leaderboardList.innerHTML = '<li class="empty">暂无记录</li>';
-        return;
-    }
-
     const currentUsername = appState.user ? appState.user.username : null;
-
-    elements.leaderboardList.innerHTML = leaderboard.map((entry, index) => {
-        const rank = index + 1;
-        const isCurrentUser = entry.username === currentUsername;
-        const rankClass = rank === 1 ? 'gold' : rank === 2 ? 'silver' : rank === 3 ? 'bronze' : '';
-        const userClass = isCurrentUser ? 'current-user' : '';
-
-        return `
-            <li class="${rankClass} ${userClass}">
-                <span class="rank">${rank}</span>
-                <span class="username">${entry.username}</span>
-                <span class="score">${entry.score}</span>
-            </li>
-        `;
-    }).join('');
-}
-
-// ========== 键盘控制 ==========
-function handleKeydown(event) {
-    // 如果游戏未开始或已结束，忽略输入
-    if (!appState.game || appState.game.gameOver) return;
-
-    switch (event.code) {
-        case 'KeyA':
-        case 'ArrowLeft':
-            appState.game.move(-1);
-            break;
-        case 'KeyD':
-        case 'ArrowRight':
-            appState.game.move(1);
-            break;
-        case 'KeyS':
-        case 'ArrowDown':
-            appState.game.drop();
-            break;
-        case 'KeyW':
-        case 'ArrowUp':
-            appState.game.rotate(1);
-            break;
-        case 'Space':
-            appState.game.hardDrop();
-            break;
-    }
+    renderLeaderboardUtil(elements.leaderboardList, leaderboard, currentUsername);
 }
 
 // ========== 启动 ==========
