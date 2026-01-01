@@ -69,6 +69,11 @@ function switchView(viewName) {
     // 显示目标视图
     views[viewName].classList.remove('hidden');
     appState.currentView = viewName;
+
+    // 切换到大厅时加载排行榜
+    if (viewName === 'lobby') {
+        loadLobbyLeaderboard();
+    }
 }
 
 /**
@@ -580,3 +585,57 @@ document.addEventListener('keydown', (event) => {
 socket.on('room_error', (msg) => {
     alert(msg);
 });
+
+// ========== 大厅排行榜 ==========
+
+/**
+ * 加载大厅排行榜
+ */
+async function loadLobbyLeaderboard() {
+    const leaderboardEl = document.getElementById('lobby-leaderboard');
+    if (!leaderboardEl) return;
+
+    try {
+        const response = await fetch('/api/leaderboard');
+        const data = await response.json();
+
+        if (data.success && data.leaderboard) {
+            renderLobbyLeaderboard(data.leaderboard);
+        } else {
+            leaderboardEl.innerHTML = '<li class="error">加载失败</li>';
+        }
+    } catch (error) {
+        console.error('加载排行榜失败:', error);
+        leaderboardEl.innerHTML = '<li class="error">网络错误</li>';
+    }
+}
+
+/**
+ * 渲染大厅排行榜
+ */
+function renderLobbyLeaderboard(leaderboard) {
+    const leaderboardEl = document.getElementById('lobby-leaderboard');
+    if (!leaderboardEl) return;
+
+    if (leaderboard.length === 0) {
+        leaderboardEl.innerHTML = '<li class="empty">暂无记录</li>';
+        return;
+    }
+
+    const currentUsername = appState.user ? appState.user.username : null;
+
+    leaderboardEl.innerHTML = leaderboard.slice(0, 10).map((entry, index) => {
+        const rank = index + 1;
+        const isCurrentUser = entry.username === currentUsername;
+        const rankClass = rank === 1 ? 'gold' : rank === 2 ? 'silver' : rank === 3 ? 'bronze' : '';
+        const userClass = isCurrentUser ? 'current-user' : '';
+
+        return `
+            <li class="${rankClass} ${userClass}">
+                <span class="rank">${rank}</span>
+                <span class="username">${entry.username}</span>
+                <span class="score">${entry.score}</span>
+            </li>
+        `;
+    }).join('');
+}
